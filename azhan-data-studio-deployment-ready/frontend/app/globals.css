@@ -1242,3 +1242,449 @@ footer { color: #98a2b3; text-align: center; padding: 24px; border-top: 1px soli
   .forecastChartWrap { padding-left:2px; padding-right:2px; }
   .forecastMethodNote { grid-template-columns:1fr; }
 }
+
+/* Scenario Studio v1 */
+.studioModeInner { grid-template-columns: repeat(4,minmax(0,1fr)); }
+
+.scenarioHero { border-bottom:1px solid #dce5f0; background:radial-gradient(circle at 82% 22%,rgba(21,94,239,.12),transparent 28%),linear-gradient(120deg,#f8fbff,#eef5ff); }
+.scenarioHeroInner { max-width:1280px; margin:0 auto; padding:42px 28px 38px; display:grid; grid-template-columns:minmax(0,1.25fr) minmax(250px,.55fr); gap:36px; align-items:center; }
+.scenarioHero h1 { margin:8px 0 10px; color:#10213d; font-size:43px; line-height:1.02; letter-spacing:-.055em; }
+.scenarioHero p { max-width:790px; margin:0; color:#64748b; font-size:12px; line-height:1.65; }
+.scenarioTrustRow { margin-top:15px; display:flex; flex-wrap:wrap; gap:7px; }
+.scenarioTrustRow span { border:1px solid #d8e4f5; border-radius:999px; background:rgba(255,255,255,.78); color:#5d6f87; padding:6px 9px; font-size:8px; font-weight:800; }
+.scenarioHeroPreview { min-height:154px; border:1px solid #cbdcf8; border-radius:18px; background:rgba(255,255,255,.82); box-shadow:0 16px 38px rgba(31,44,60,.08); display:grid; grid-template-columns:repeat(3,1fr); gap:8px; align-items:end; padding:22px; }
+.scenarioHeroPreview i { height:62px; border-radius:12px 12px 6px 6px; display:grid; place-items:center; font-size:22px; font-style:normal; font-weight:900; }
+.scenarioHeroPreview i.down { height:44px; background:#fff0f0; color:#b42318; }
+.scenarioHeroPreview i.base { height:58px; background:#edf2f8; color:#68778b; }
+.scenarioHeroPreview i.up { height:78px; background:#eaf8f3; color:#147d64; }
+.scenarioHeroPreview strong,.scenarioHeroPreview small { grid-column:1 / -1; }
+.scenarioHeroPreview strong { color:#26364d; font-size:10px; }
+.scenarioHeroPreview small { color:#8290a3; font-size:8px; }
+
+.scenarioShell { max-width:1280px; margin:0 auto; padding:30px 28px 68px; display:grid; gap:16px; }
+.scenarioStepHeading { display:flex; align-items:flex-start; gap:12px; margin-top:2px; }
+.scenarioStepHeading > span { flex:0 0 auto; width:29px; height:29px; border-radius:8px; display:grid; place-items:center; background:var(--accent); color:#fff; font-size:9px; font-weight:900; box-shadow:0 6px 15px rgba(21,94,239,.18); }
+.scenarioStepHeading > div { min-width:0; }
+.scenarioStepHeading small { display:block; color:var(--accent); font-size:8px; font-weight:900; letter-spacing:.08em; }
+.scenarioStepHeading h2 { margin:3px 0 2px; color:#25364f; font-size:18px; letter-spacing:-.025em; }
+.scenarioStepHeading p { margin:0; color:#78869a; font-size:9px; line-height:1.45; }
+
+.scenarioUploadPanel { padding:16px; display:grid; grid-template-columns:minmax(0,1fr) minmax(220px,.33fr); gap:12px; align-items:center; }
+.scenarioDropzone { min-height:102px; border:1.5px dashed #c7d5e6; border-radius:13px; background:#fbfdff; display:flex; align-items:center; justify-content:center; gap:14px; color:var(--text); text-align:left; }
+.scenarioDropzone:hover { border-color:#8db3f5; background:#f6faff; }
+.scenarioDropzone.hasFile { border-style:solid; border-color:#adc8f5; background:#f7faff; }
+.scenarioDropzone > span:last-child { display:grid; gap:4px; }
+.scenarioDropzone strong { font-size:12px; }
+.scenarioDropzone small { color:#7f8ca0; font-size:9px; }
+.scenarioUploadIcon { width:38px; height:38px; border-radius:10px; display:grid; place-items:center; background:var(--accent-soft); color:var(--accent); font-size:17px; font-weight:900; }
+.scenarioSheetField { display:grid; gap:6px; }
+.scenarioSheetField > span,.scenarioConfigGrid label > span { color:#66758a; font-size:8px; font-weight:850; letter-spacing:.04em; text-transform:uppercase; }
+.scenarioSheetField select,.scenarioConfigGrid select { min-height:40px; width:100%; border:1px solid #cfdae8; border-radius:9px; background:#fff; color:#26364d; padding:0 10px; font-size:10px; font-weight:700; }
+.scenarioStatus { grid-column:1 / -1; border-radius:9px; background:#f2f7ff; color:#4269a3; padding:9px 11px; font-size:9px; font-weight:700; }
+.scenarioFileMeta { grid-column:1 / -1; display:flex; flex-wrap:wrap; gap:6px; padding-top:2px; }
+.scenarioFileMeta span { border:1px solid #e1e8f0; border-radius:999px; background:#fff; color:#68778b; padding:5px 8px; font-size:8px; font-weight:750; }
+
+.scenarioConfigPanel { padding:16px; }
+.scenarioConfigGrid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+.scenarioConfigGrid label { min-width:0; display:grid; gap:5px; align-content:start; }
+.scenarioConfigGrid label small { color:#8995a6; font-size:8px; line-height:1.35; }
+
+.scenarioAssumptionGrid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(230px,.7fr); gap:12px; align-items:stretch; }
+.scenarioAssumptionCard { padding:16px; display:grid; grid-template-columns:1fr 1fr; gap:12px; border-top-width:3px; }
+.scenarioAssumptionCard.upside { border-top-color:#20a477; }
+.scenarioAssumptionCard.downside { border-top-color:#d75555; }
+.scenarioAssumptionCard > div { grid-column:1 / -1; }
+.scenarioAssumptionCard > div span { display:block; font-size:8px; font-weight:900; letter-spacing:.08em; }
+.scenarioAssumptionCard.upside > div span { color:#147d64; }
+.scenarioAssumptionCard.downside > div span { color:#b42318; }
+.scenarioAssumptionCard > div strong { display:block; margin-top:4px; color:#293950; font-size:13px; }
+.scenarioAssumptionCard label { display:grid; gap:5px; }
+.scenarioAssumptionCard label > span { color:#69788d; font-size:8px; font-weight:800; }
+.scenarioAssumptionCard label > div { display:grid; grid-template-columns:1fr auto; border:1px solid #cfdae8; border-radius:9px; overflow:hidden; background:#fff; }
+.scenarioAssumptionCard input { width:100%; min-width:0; border:0; outline:0; padding:10px; color:#26364d; font-size:12px; font-weight:800; background:transparent; }
+.scenarioAssumptionCard label b { display:grid; place-items:center; min-width:34px; background:#f3f6fa; color:#7b8797; font-size:10px; }
+.scenarioRunCard { border:1px solid #bcd1f5; border-radius:14px; background:linear-gradient(145deg,#f8fbff,#edf4ff); padding:17px; display:flex; flex-direction:column; justify-content:center; gap:7px; box-shadow:0 8px 20px rgba(21,94,239,.06); }
+.scenarioRunCard > span { color:var(--accent); font-size:8px; font-weight:900; letter-spacing:.08em; }
+.scenarioRunCard > strong { color:#25364f; font-size:14px; }
+.scenarioRunCard p { margin:0 0 5px; color:#748299; font-size:9px; line-height:1.45; }
+.scenarioPrimary { min-height:41px; border:0; border-radius:9px; background:var(--accent); color:#fff; font-size:10px; font-weight:850; box-shadow:0 7px 17px rgba(21,94,239,.18); }
+.scenarioPrimary:hover:not(:disabled) { background:var(--accent-dark); }
+.scenarioPrimary:disabled { opacity:.55; }
+.scenarioError { max-width:none; margin:0; }
+
+.scenarioResultHeading { align-items:center; }
+.scenarioResultActions { margin-left:auto; display:flex; gap:7px; }
+.scenarioResultActions button { border:1px solid #c9d8ed; border-radius:9px; background:#fff; color:#315b98; padding:9px 11px; font-size:9px; font-weight:800; }
+.scenarioSummaryGrid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+.scenarioSummaryCard { border:1px solid var(--border); border-radius:13px; background:#fff; padding:15px; box-shadow:var(--shadow-soft); display:grid; gap:5px; border-top-width:3px; }
+.scenarioSummaryCard.base { border-top-color:#94a3b8; }
+.scenarioSummaryCard.upside { border-top-color:#20a477; }
+.scenarioSummaryCard.downside { border-top-color:#d75555; }
+.scenarioSummaryCard.spread { border-top-color:var(--accent); }
+.scenarioSummaryCard > span { color:#7c899b; font-size:8px; font-weight:900; letter-spacing:.07em; }
+.scenarioSummaryCard > strong { color:#26364d; font-size:22px; line-height:1; letter-spacing:-.035em; }
+.scenarioSummaryCard > small { color:#7e8a9c; font-size:8px; }
+
+.scenarioOutcomePanel,.scenarioSensitivityPanel,.scenarioSegmentPanel { overflow:hidden; }
+.scenarioPanelHeader { padding:16px 18px 13px; display:flex; align-items:flex-start; justify-content:space-between; gap:18px; border-bottom:1px solid #edf0f3; }
+.scenarioPanelHeader h3 { margin:3px 0 3px; color:#25364f; font-size:16px; letter-spacing:-.025em; }
+.scenarioPanelHeader p { max-width:760px; margin:0; color:#78869a; font-size:9px; line-height:1.45; }
+.scenarioPanelHeader > strong { font-size:15px; }
+.scenarioBars { padding:13px 18px 18px; display:grid; gap:12px; }
+.scenarioBarRow { display:grid; grid-template-columns:minmax(145px,.45fr) minmax(220px,1.3fr) minmax(100px,.35fr); gap:12px; align-items:center; }
+.scenarioBarLabel { display:flex; justify-content:space-between; gap:8px; color:#334155; font-size:10px; }
+.scenarioBarLabel span { color:#66758a; font-weight:800; }
+.scenarioBarTrack { height:12px; border-radius:999px; background:#eef2f6; overflow:hidden; }
+.scenarioBarTrack span { display:block; height:100%; border-radius:inherit; }
+.scenarioBarTrack span.base { background:#94a3b8; }
+.scenarioBarTrack span.upside { background:#20a477; }
+.scenarioBarTrack span.downside { background:#d75555; }
+.scenarioBarRow > small { text-align:right; color:#7c899b; font-size:8px; font-weight:750; }
+
+.scenarioHighlightGrid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.scenarioHighlightCard { min-height:112px; padding:15px; }
+.scenarioHighlightCard > strong { display:block; margin:5px 0; color:#293950; font-size:13px; }
+.scenarioHighlightCard p { margin:0; color:#768498; font-size:9px; line-height:1.5; }
+.scenarioSensitivityGrid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+.scenarioSensitivityList { padding:8px 18px 15px; display:grid; gap:9px; }
+.scenarioSensitivityList > div { display:grid; grid-template-columns:minmax(100px,.55fr) minmax(150px,1.1fr) minmax(80px,.35fr); gap:10px; align-items:center; }
+.scenarioSensitivityList span { color:#5f6f84; font-size:9px; font-weight:750; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.scenarioSensitivityTrack { height:8px; overflow:hidden; border-radius:999px; background:#edf1f5; }
+.scenarioSensitivityTrack i { display:block; height:100%; border-radius:inherit; }
+.scenarioSensitivityTrack i.positiveBar { background:#20a477; }
+.scenarioSensitivityTrack i.negativeBar { background:#d75555; }
+.scenarioSensitivityList strong { text-align:right; font-size:9px; }
+
+.scenarioTableWrap { max-height:390px; overflow:auto; }
+.scenarioTable { width:100%; border-collapse:collapse; font-size:9px; }
+.scenarioTable th { position:sticky; top:0; z-index:1; background:#f7f9fc; color:#68778b; font-size:8px; text-transform:uppercase; letter-spacing:.05em; text-align:left; }
+.scenarioTable th,.scenarioTable td { padding:10px 12px; border-bottom:1px solid #edf0f3; white-space:nowrap; }
+.scenarioTable td { color:#637187; }
+.scenarioTable td strong { color:#25364f; }
+.scenarioMethodNote { border-left:3px solid var(--accent); border-radius:0 11px 11px 0; background:#f4f8ff; padding:12px 14px; display:grid; grid-template-columns:auto 1fr; gap:5px 12px; }
+.scenarioMethodNote strong { color:#35465d; font-size:9px; }
+.scenarioMethodNote span { color:#718096; font-size:8px; line-height:1.5; }
+
+@media (max-width: 1060px) {
+  .studioModeInner { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .scenarioAssumptionGrid { grid-template-columns:1fr 1fr; }
+  .scenarioRunCard { grid-column:1 / -1; }
+}
+@media (max-width: 820px) {
+  .scenarioHeroInner { grid-template-columns:1fr; }
+  .scenarioHeroPreview { display:none; }
+  .scenarioConfigGrid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .scenarioSummaryGrid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .scenarioSensitivityGrid { grid-template-columns:1fr; }
+  .scenarioHighlightGrid { grid-template-columns:1fr; }
+}
+@media (max-width: 620px) {
+  .studioModeInner { grid-template-columns:repeat(2,minmax(0,1fr)); gap:5px; padding:8px 10px; }
+  .scenarioHeroInner { padding:34px 18px 30px; }
+  .scenarioHero h1 { font-size:34px; }
+  .scenarioShell { padding:24px 18px 56px; }
+  .scenarioUploadPanel { grid-template-columns:1fr; }
+  .scenarioFileMeta,.scenarioStatus { grid-column:auto; }
+  .scenarioConfigGrid,.scenarioAssumptionGrid { grid-template-columns:1fr; }
+  .scenarioRunCard { grid-column:auto; }
+  .scenarioAssumptionCard { grid-template-columns:1fr; }
+  .scenarioAssumptionCard > div { grid-column:auto; }
+  .scenarioSummaryGrid { grid-template-columns:1fr 1fr; }
+  .scenarioResultHeading { flex-wrap:wrap; }
+  .scenarioResultActions { width:100%; margin-left:41px; }
+  .scenarioResultActions button { flex:1; }
+  .scenarioBarRow { grid-template-columns:1fr; gap:5px; }
+  .scenarioBarRow > small { text-align:left; }
+  .scenarioSensitivityList > div { grid-template-columns:minmax(90px,.65fr) 1fr; }
+  .scenarioSensitivityList strong { grid-column:2; text-align:left; }
+  .scenarioMethodNote { grid-template-columns:1fr; }
+}
+
+/* Scenario Studio v1.1 — readability upgrade */
+@media (min-width: 621px) {
+  .studioModeTab strong { font-size: 14px; }
+  .studioModeTab small { font-size: 11px; line-height: 1.35; }
+  .studioModeTab em { font-size: 9px; }
+
+  .scenarioHero p { font-size: 14px; line-height: 1.7; }
+  .scenarioTrustRow span { font-size: 10px; padding: 7px 10px; }
+  .scenarioHeroPreview strong { font-size: 12px; }
+  .scenarioHeroPreview small { font-size: 10px; }
+
+  .scenarioStepHeading > span { width: 31px; height: 31px; font-size: 10px; }
+  .scenarioStepHeading small { font-size: 10px; }
+  .scenarioStepHeading h2 { font-size: 20px; }
+  .scenarioStepHeading p { font-size: 11px; line-height: 1.55; }
+
+  .scenarioDropzone strong { font-size: 14px; }
+  .scenarioDropzone small { font-size: 11px; }
+  .scenarioSheetField > span,
+  .scenarioConfigGrid label > span { font-size: 10px; }
+  .scenarioSheetField select,
+  .scenarioConfigGrid select { font-size: 12px; }
+  .scenarioStatus { font-size: 11px; }
+  .scenarioFileMeta span { font-size: 10px; }
+  .scenarioConfigGrid label small { font-size: 10px; line-height: 1.45; }
+
+  .scenarioAssumptionCard > div span { font-size: 10px; }
+  .scenarioAssumptionCard > div strong { font-size: 15px; }
+  .scenarioAssumptionCard label > span { font-size: 10px; }
+  .scenarioAssumptionCard input { font-size: 13px; }
+  .scenarioAssumptionCard label b { font-size: 11px; }
+  .scenarioRunCard > span { font-size: 10px; }
+  .scenarioRunCard > strong { font-size: 16px; }
+  .scenarioRunCard p { font-size: 11px; line-height: 1.55; }
+  .scenarioPrimary { font-size: 12px; }
+
+  .scenarioResultActions button { font-size: 11px; }
+  .scenarioSummaryCard > span { font-size: 10px; }
+  .scenarioSummaryCard > strong { font-size: 25px; }
+  .scenarioSummaryCard > small { font-size: 10px; line-height: 1.4; }
+
+  .scenarioPanelHeader h3 { font-size: 18px; }
+  .scenarioPanelHeader p { font-size: 11px; line-height: 1.55; }
+  .scenarioPanelHeader > strong { font-size: 16px; }
+  .scenarioBarLabel { font-size: 12px; }
+  .scenarioBarRow > small { font-size: 10px; }
+
+  .scenarioHighlightCard > strong { font-size: 15px; }
+  .scenarioHighlightCard p { font-size: 11px; line-height: 1.55; }
+  .scenarioSensitivityList span { font-size: 11px; }
+  .scenarioSensitivityList strong { font-size: 11px; }
+
+  .scenarioTable { font-size: 11px; }
+  .scenarioTable th { font-size: 10px; }
+  .scenarioTable th,
+  .scenarioTable td { padding: 11px 13px; }
+  .scenarioMethodNote strong { font-size: 11px; }
+  .scenarioMethodNote span { font-size: 10px; line-height: 1.6; }
+}
+
+@media (max-width: 620px) {
+  .studioModeTab strong { font-size: 10px; line-height: 1.25; }
+  .scenarioHero p { font-size: 13px; }
+  .scenarioTrustRow span { font-size: 9px; }
+  .scenarioStepHeading small { font-size: 9px; }
+  .scenarioStepHeading h2 { font-size: 19px; }
+  .scenarioStepHeading p { font-size: 11px; }
+  .scenarioDropzone strong { font-size: 13px; }
+  .scenarioDropzone small { font-size: 10px; }
+  .scenarioSheetField > span,
+  .scenarioConfigGrid label > span,
+  .scenarioAssumptionCard label > span { font-size: 9px; }
+  .scenarioSheetField select,
+  .scenarioConfigGrid select,
+  .scenarioAssumptionCard input { font-size: 12px; }
+  .scenarioConfigGrid label small,
+  .scenarioRunCard p,
+  .scenarioPanelHeader p,
+  .scenarioHighlightCard p { font-size: 10px; }
+  .scenarioSummaryCard > span,
+  .scenarioSummaryCard > small { font-size: 9px; }
+  .scenarioPanelHeader h3 { font-size: 17px; }
+  .scenarioTable { font-size: 10px; }
+  .scenarioTable th { font-size: 9px; }
+  .scenarioMethodNote strong { font-size: 10px; }
+  .scenarioMethodNote span { font-size: 9px; }
+}
+
+/* Azhan Data Studio v1.2 — project-wide readability scale
+   Matches the larger Scenario v1.1 typography across Analyse, Compare,
+   Explain and Forecast while leaving print/PDF sizing unchanged. */
+@media screen and (min-width: 621px) {
+  body { font-size: 14px; }
+  .eyebrow, .panelKicker { font-size: 12px; }
+  .heroFeaturePills span { font-size: 12px; }
+  .heroExampleTop span { font-size: 10px; }
+  .heroExampleTop strong { font-size: 12px; }
+  .heroExampleScore small { font-size: 9px; }
+  .heroExampleInsight > div:last-child > b { font-size: 15px; }
+  .heroExampleInsight p { font-size: 12px; line-height: 1.55; }
+  .heroOutputRow b, .heroOutputRow small { font-size: 10px; }
+  .heroActionHeading > span { font-size: 11px; }
+  .heroActionHeading p { font-size: 14px; }
+  .dropzone span { font-size: 13px; }
+  .errorBox { font-size: 13px; }
+
+  .datasetBadges span, .headingPills span, .roleSummary span { font-size: 12px; }
+  .workspaceNav button { font-size: 14px; }
+  .pageHeading p, .detailHeader p { font-size: 14px; line-height: 1.6; }
+  .metricCard span { font-size: 12px; }
+  .panelHeader h3, .detailHeader h3 { font-size: 20px; }
+  .overviewInsightBody strong { font-size: 14px; }
+  .overviewInsightBody small { font-size: 11px; }
+  .priorityPill, .priorityBadge { font-size: 10px; }
+  .priorityText { font-size: 11px; }
+  .workspaceRank { font-size: 11px; }
+  .workspaceInsightRow h4 { font-size: 15px; }
+  .workspaceInsightRow p { font-size: 12px; line-height: 1.55; }
+  .workspaceMeta { font-size: 11px; }
+  .scoreHero span { font-size: 10px; }
+  .evidenceMetric span { font-size: 11px; }
+  .evidenceMetric strong { font-size: 14px; }
+  .scoreDetails summary, .textButton { font-size: 13px; }
+  .rankingFactor > div:first-child { font-size: 11px; }
+  .rankingReason { font-size: 11px; line-height: 1.55; }
+  .analysisCaution { font-size: 10px; line-height: 1.55; }
+  .filterBar button { font-size: 12px; }
+  .exploreCard h3 { font-size: 15px; }
+  .exploreCard p, .openLink { font-size: 12px; line-height: 1.55; }
+  .qualityFieldMeta strong { font-size: 12px; }
+  .qualityFieldMeta span { font-size: 10px; }
+  .fieldListHeader { font-size: 10px; }
+  .fieldCompactRow strong { font-size: 13px; }
+  .fieldCompactRow > span:last-child { font-size: 12px; }
+  .tag, .roleTag { font-size: 11px; }
+  .confidenceNumber small { font-size: 9px; }
+  .reasonBox strong, .reasonBox p { font-size: 12px; }
+  .profileMetric span { font-size: 11px; }
+  .profileMetric strong { font-size: 16px; }
+  .distributionHeading strong { font-size: 12px; }
+  .distributionLabel { font-size: 10px; }
+  table { font-size: 12px; }
+  th { font-size: 11px; }
+  .visualizationHeader h4 { font-size: 17px; }
+  .visualizationHeader p, .chartEmpty { font-size: 12px; line-height: 1.55; }
+  .chartTypeBadge { font-size: 9px; }
+  .chartAxisText { font-size: 11px; }
+  .chartXAxisText { font-size: 10px; }
+  .chartAxisLabels { font-size: 10px; }
+  .visualizationReason { font-size: 10px; line-height: 1.55; }
+  .autoBarLabel, .autoBarValue strong { font-size: 12px; }
+  .autoBarValue small { font-size: 10px; }
+
+  .workbookLoading { font-size: 12px; }
+  .workbookSelectorHead span { font-size: 10px; }
+  .workbookSelectorHead strong { font-size: 16px; }
+  .workbookSelectorHead > small { font-size: 11px; }
+  .sheetChoiceMain b { font-size: 13px; }
+  .sheetChoiceMain small, .sheetChoiceMeta small { font-size: 10px; }
+  .sheetChoiceMeta em { font-size: 9px; }
+  .currentSheetLabel { font-size: 11px; }
+  .compactSheetSelect { font-size: 12px; }
+  .analysisNotice { font-size: 12px; }
+
+  .supportTopButton, .compareTopButton { font-size: 12px; }
+  .supportLanding strong { font-size: 15px; }
+  .supportLanding p { font-size: 12px; line-height: 1.55; }
+  .supportPending { font-size: 12px; }
+  .supportPanelCopy p { font-size: 12px; }
+  .supportPanelAction small { font-size: 10px; }
+
+  .studioModeTab strong { font-size: 14px; }
+  .studioModeTab small { font-size: 11px; line-height: 1.35; }
+  .studioModeTab em { font-size: 9px; }
+
+  .compareHeroCopy p { font-size: 16px; }
+  .compareTrustRow span { font-size: 11px; }
+  .compareBackLink { font-size: 12px; }
+  .compareStepHeading > span { font-size: 11px; }
+  .compareStepHeading small { font-size: 10px; }
+  .compareStepHeading h2 { font-size: 25px; }
+  .compareStepHeading p { font-size: 12px; line-height: 1.6; }
+  .compareFileHeading span { font-size: 10px; }
+  .compareFileHeading h3 { font-size: 20px; }
+  .compareDropCopy strong { font-size: 14px; }
+  .compareDropCopy small, .compareMiniStatus { font-size: 11px; }
+  .compareSheetField > span, .compareKeySelect > span { font-size: 11px; }
+  .compareSheetField select, .compareKeySelect select { font-size: 12px; }
+  .comparePrepareBar strong { font-size: 13px; }
+  .comparePrepareBar span { font-size: 11px; }
+  .compareMetric > span { font-size: 10px; }
+  .keyHealth strong { font-size: 12px; }
+  .keyHealth span, .keyHealth small { font-size: 10px; }
+  .schemaPreview span, .schemaPreview small { font-size: 10px; }
+  .compareHighlights strong { font-size: 13px; }
+  .compareHighlights p { font-size: 11px; line-height: 1.55; }
+  .compareMetricPanel .panelHeader p,
+  .compareSchemaPanel .panelHeader p,
+  .compareRecordsPanel .panelHeader p,
+  .compareVisualPanel .panelHeader p,
+  .explainChangePanel p { font-size: 11px; line-height: 1.55; }
+  .compareTable { font-size: 11px; }
+  .compareTable th { font-size: 10px; }
+  .schemaChangeList strong { font-size: 12px; }
+  .schemaChangeList p { font-size: 10px; }
+  .compareRecordTabs button { font-size: 11px; }
+  .fieldChangeHead { font-size: 10px; }
+  .fieldChangeRow { font-size: 11px; }
+  .compareMethodNote strong { font-size: 11px; }
+  .compareMethodNote span { font-size: 10px; line-height: 1.55; }
+  .compareNoCommon { font-size: 11px; }
+  .metricMovementRow > small { font-size: 10px; }
+
+  .explainChangeHeader label > span { font-size: 10px; }
+  .explainChangeHeader select { font-size: 12px; }
+  .explainMetricMove > span, .explainNarrative > span { font-size: 10px; }
+  .explainMetricMove > small { font-size: 10px; }
+  .explainNarrative > strong { font-size: 18px; }
+  .explainNarrative > small { font-size: 10px; }
+  .driverLabel strong { font-size: 11px; }
+  .driverLabel span { font-size: 10px; }
+  .driverValue strong { font-size: 12px; }
+  .driverValue small { font-size: 10px; }
+  .explainCaveat { font-size: 10px; line-height: 1.55; }
+  .explainStoryGrid article > span { font-size: 9px; }
+  .explainStoryGrid article > strong { font-size: 14px; }
+  .explainStoryGrid article > em { font-size: 11px; }
+  .explainStoryGrid article > small { font-size: 10px; }
+  .dimensionRankHeading h4, .driverBalanceHeader h4 { font-size: 16px; }
+  .dimensionRankHeading > small { font-size: 10px; }
+  .dimensionRankTabs button span { font-size: 9px; }
+  .dimensionRankTabs button strong { font-size: 11px; }
+  .dimensionRankTabs button em { font-size: 10px; }
+  .driverBalanceHeader p { font-size: 11px; line-height: 1.5; }
+  .driverBalanceLegend { font-size: 10px; }
+  .driverListV2 .driverLabel em { font-size: 8px; }
+
+  .forecastHeroCopy p { font-size: 14px; line-height: 1.7; }
+  .forecastTrustRow span { font-size: 10px; padding: 7px 10px; }
+  .forecastHeroPreview strong { font-size: 15px; }
+  .forecastHeroPreview small { font-size: 11px; }
+  .forecastStepHeading > span { width: 31px; height: 31px; font-size: 10px; }
+  .forecastStepHeading small { font-size: 10px; }
+  .forecastStepHeading h2 { font-size: 20px; }
+  .forecastStepHeading p { font-size: 11px; line-height: 1.55; }
+  .forecastDropzone strong { font-size: 14px; }
+  .forecastDropzone small { font-size: 11px; }
+  .forecastSheetField > span, .forecastConfigGrid label > span { font-size: 10px; }
+  .forecastSheetField select, .forecastConfigGrid select { font-size: 12px; }
+  .forecastStatus { font-size: 11px; }
+  .forecastFileMeta span { font-size: 10px; }
+  .forecastConfigGrid label small, .forecastRunCell small { font-size: 10px; line-height: 1.45; }
+  .forecastPrimary { font-size: 12px; }
+  .forecastResetButton, .forecastCsvButton { font-size: 11px; }
+  .forecastSummaryGrid article > span { font-size: 10px; }
+  .forecastSummaryGrid article > strong { font-size: 25px; }
+  .forecastSummaryGrid article > small { font-size: 10px; line-height: 1.4; }
+  .forecastPanelHeader h3 { font-size: 18px; }
+  .forecastPanelHeader p { font-size: 11px; line-height: 1.55; }
+  .forecastChartLegend { font-size: 10px; }
+  .forecastFutureLabel { font-size: 10px; }
+  .forecastAxisText { font-size: 10px; }
+  .forecastInsightCard > strong { font-size: 15px; }
+  .forecastInsightCard p { font-size: 11px; line-height: 1.55; }
+  .forecastDiagnosticsList span { font-size: 11px; }
+  .forecastDiagnosticsList strong { font-size: 11px; }
+  .forecastTable { font-size: 11px; }
+  .forecastTable th { font-size: 10px; }
+  .forecastMethodNote strong { font-size: 11px; }
+  .forecastMethodNote span { font-size: 10px; line-height: 1.6; }
+}
+
+@media screen and (max-width: 620px) {
+  .studioModeTab strong { font-size: 10px; line-height: 1.25; }
+  .pageHeading p, .detailHeader p { font-size: 12px; }
+  .workspaceNav button { font-size: 12px; }
+  .overviewInsightBody strong { font-size: 13px; }
+  .overviewInsightBody small { font-size: 10px; }
+  .workspaceInsightRow h4 { font-size: 14px; }
+  .workspaceInsightRow p { font-size: 11px; }
+  .compareStepHeading p, .forecastStepHeading p { font-size: 11px; }
+  .compareDropCopy strong, .forecastDropzone strong { font-size: 13px; }
+  .compareDropCopy small, .forecastDropzone small { font-size: 10px; }
+  .compareTable, .forecastTable { font-size: 10px; }
+  .compareTable th, .forecastTable th { font-size: 9px; }
+  .driverLabel strong, .driverValue strong { font-size: 11px; }
+  .driverLabel span, .driverValue small { font-size: 9px; }
+}

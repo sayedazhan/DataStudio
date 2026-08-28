@@ -4,7 +4,7 @@ Current production architecture:
 - Frontend: Netlify (Next.js)
 - Backend: Railway (FastAPI + Polars)
 
-All product modes use the same frontend and the same Railway backend. No second backend service is required for Compare, Explain Change, or Forecast.
+All product modes use the same frontend and the same Railway backend. No second backend service is required for Compare, Explain Change, Forecast, or Scenario.
 
 ## Railway backend
 
@@ -27,6 +27,8 @@ After deployment verify:
 - `/api/datasets/compare`
 - `/api/datasets/forecast/prepare`
 - `/api/datasets/forecast`
+- `/api/datasets/scenario/prepare`
+- `/api/datasets/scenario`
 
 ## Netlify frontend
 
@@ -40,6 +42,7 @@ Production pages:
 - `/` Analyse Single File
 - `/compare` Compare Datasets + Explain Change v2
 - `/forecast` Forecast Studio v1
+- `/scenario` Scenario Studio v1
 
 ## Production regression test
 
@@ -50,7 +53,8 @@ Production pages:
 5. Compare `sample-data/compare-baseline.csv` vs `sample-data/compare-current.csv` using `OrderID`.
 6. Verify Explain Change v2 renders ranked driver evidence.
 7. Forecast `sample-data/forecast-monthly-sample.csv` using `Month` + `Revenue` with a 6-period horizon.
-8. Verify Stripe Support opens the configured Payment Link if `NEXT_PUBLIC_SUPPORT_URL` is set.
+8. Run `sample-data/scenario-business-sample.csv` with Revenue − Cost, Upside Revenue +10% / Cost +5%, Downside Revenue -10% / Cost 0%, and Region breakdown.
+9. Verify Stripe Support opens the configured Payment Link if `NEXT_PUBLIC_SUPPORT_URL` is set.
 
 ## Data handling
 Uploaded datasets are processed by the FastAPI backend for the request. The application code does not persist uploaded files after request processing.

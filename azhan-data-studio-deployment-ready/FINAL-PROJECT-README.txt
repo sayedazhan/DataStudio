@@ -16,6 +16,7 @@ Included product capabilities:
 - Compare Datasets
 - Explain Change v2
 - Forecast Studio v1
+- Scenario Studio v1 / What-If Analysis
 - Optional Stripe Support buttons via NEXT_PUBLIC_SUPPORT_URL
 
 Project structure:
@@ -28,6 +29,7 @@ Local URLs:
 - Backend docs: http://127.0.0.1:8000/docs
 - Compare: http://localhost:3000/compare
 - Forecast: http://localhost:3000/forecast
+- Scenario: http://localhost:3000/scenario
 
 Production architecture:
 - Frontend: Netlify

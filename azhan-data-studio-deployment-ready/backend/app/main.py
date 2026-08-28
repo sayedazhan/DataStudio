@@ -16,17 +16,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.insights import discover_insights
 from app.compare import compare_datasets, prepare_comparison
 from app.forecast import forecast_series, prepare_forecast
+from app.scenario import prepare_scenario, run_scenario
 
 APP_NAME = "Azhan Data Studio API"
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 COMPARE_MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB per file
 FORECAST_MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB per file
+SCENARIO_MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB per file
 SUPPORTED_EXTENSIONS = {".csv", ".xlsx"}
 
 app = FastAPI(
     title=APP_NAME,
-    description="Deterministic data-intelligence API for profiling, discovery, ranking, visualisation, dataset comparison, forecasting, and report-ready analysis.",
-    version="1.2.0",
+    description="Deterministic data-intelligence API for profiling, discovery, ranking, visualisation, dataset comparison, forecasting, scenario modelling, and report-ready analysis.",
+    version="1.3.0",
 )
 
 DEFAULT_CORS_ORIGINS = [
@@ -762,6 +764,85 @@ async def run_dataset_forecast(
             aggregation=aggregation,
             frequency=frequency,
             horizon=horizon,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    result["dataset"] = {
+        "filename": file.filename,
+        "file_type": extension.removeprefix("."),
+        "file_size_bytes": len(content),
+        "rows": frame.height,
+        "columns": frame.width,
+        "sheet_name": sheet_name if extension == ".xlsx" else None,
+    }
+    return _serialise(result)
+
+def _validate_scenario_upload(file: UploadFile) -> str:
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="A scenario file with a filename is required.")
+    extension = Path(file.filename).suffix.lower()
+    if extension not in SUPPORTED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Scenario Studio supports CSV and XLSX files only.")
+    return extension
+
+
+@app.post("/api/datasets/scenario/prepare")
+async def prepare_dataset_scenario(
+    file: UploadFile = File(...),
+    sheet_name: str | None = Form(default=None),
+) -> dict[str, Any]:
+    extension = _validate_scenario_upload(file)
+    content = await _read_uploaded_bytes(file, SCENARIO_MAX_FILE_SIZE)
+    _validate_uploaded_format(content, extension)
+    frame = _read_dataset(content, extension, sheet_name if extension == ".xlsx" else None)
+    if frame.height == 0 or frame.width == 0:
+        raise HTTPException(status_code=400, detail="The scenario dataset must contain rows and columns.")
+
+    prepared = prepare_scenario(frame)
+    prepared["dataset"] = {
+        "filename": file.filename,
+        "file_type": extension.removeprefix("."),
+        "file_size_bytes": len(content),
+        "rows": frame.height,
+        "columns": frame.width,
+        "sheet_name": sheet_name if extension == ".xlsx" else None,
+    }
+    return _serialise(prepared)
+
+
+@app.post("/api/datasets/scenario")
+async def run_dataset_scenario(
+    file: UploadFile = File(...),
+    metric_a: str = Form(...),
+    metric_b: str | None = Form(default=None),
+    calculation: str = Form(default="single"),
+    aggregation_a: str = Form(default="sum"),
+    aggregation_b: str = Form(default="sum"),
+    upside_a: float = Form(default=10.0),
+    upside_b: float = Form(default=0.0),
+    downside_a: float = Form(default=-10.0),
+    downside_b: float = Form(default=0.0),
+    dimension: str | None = Form(default=None),
+    sheet_name: str | None = Form(default=None),
+) -> dict[str, Any]:
+    extension = _validate_scenario_upload(file)
+    content = await _read_uploaded_bytes(file, SCENARIO_MAX_FILE_SIZE)
+    _validate_uploaded_format(content, extension)
+    frame = _read_dataset(content, extension, sheet_name if extension == ".xlsx" else None)
+    try:
+        result = run_scenario(
+            frame,
+            metric_a=metric_a,
+            metric_b=metric_b or None,
+            calculation=calculation,
+            aggregation_a=aggregation_a,
+            aggregation_b=aggregation_b,
+            upside_a=upside_a,
+            upside_b=upside_b,
+            downside_a=downside_a,
+            downside_b=downside_b,
+            dimension=dimension or None,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

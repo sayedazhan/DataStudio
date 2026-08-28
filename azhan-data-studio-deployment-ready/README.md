@@ -28,6 +28,17 @@ Upload a time-based CSV/XLSX dataset, choose a date field and numeric metric, se
 - backtest MAPE and MAE
 - forecast CSV export
 
+
+### 4. Scenario / What-If
+Upload CSV/XLSX business data, choose one or two numeric measures, define a calculation, and model user-controlled Base, Upside, and Downside cases. Scenario v1 includes:
+- single-metric, difference, ratio, product, and margin-percentage formulas
+- independent aggregation choice for Metric A and Metric B
+- percentage assumptions for Upside and Downside cases
+- driver sensitivity and interaction effect
+- optional category/region/product breakdown
+- scenario CSV export
+- deterministic calculations with no AI-generated scenario values
+
 ## Additional capabilities
 - CSV and XLSX support
 - multi-sheet Excel support
@@ -67,6 +78,7 @@ Before starting the frontend, create `.env.local` from `.env.local.example`.
 Frontend: http://localhost:3000
 Compare: http://localhost:3000/compare
 Forecast: http://localhost:3000/forecast
+Scenario: http://localhost:3000/scenario
 
 You can also use `setup-windows.bat`, `run-backend.bat`, and `run-frontend.bat`.
 
