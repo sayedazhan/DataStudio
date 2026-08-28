@@ -215,6 +215,7 @@ type WorkbookInfo = {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 const PORTFOLIO_URL = "https://syedazhan.netlify.app/";
+const SUPPORT_URL = process.env.NEXT_PUBLIC_SUPPORT_URL ?? "";
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat("en-AU").format(value);
@@ -1091,13 +1092,23 @@ export default function Home() {
           <DataStudioMark />
           <span className="brandText"><strong>Azhan Data Studio</strong><small>Automated Data Intelligence</small></span>
         </a>
-        <a className="creatorBadge" href={PORTFOLIO_URL} target="_blank" rel="noreferrer" aria-label="View Azhan Hassan portfolio">
-          <span className="creatorLabel">CREATED BY</span>
-          <span className="creatorName">Azhan Hassan</span>
-          <span className="creatorRole">Data &amp; AI Automation Specialist</span>
-          <span className="portfolioCta">View Portfolio ↗</span>
-        </a>
+        <div className="topbarActions">
+          <a className="creatorBadge" href={PORTFOLIO_URL} target="_blank" rel="noreferrer" aria-label="View Azhan Hassan portfolio">
+            <span className="creatorLabel">CREATED BY</span>
+            <span className="creatorName">Azhan Hassan</span>
+            <span className="creatorRole">Data &amp; AI Automation Specialist</span>
+            <span className="portfolioCta">View Portfolio ↗</span>
+          </a>
+          <a className="supportTopButton" href={SUPPORT_URL || "#support"} target={SUPPORT_URL ? "_blank" : undefined} rel={SUPPORT_URL ? "noreferrer" : undefined} aria-label="Support Azhan Data Studio development with Stripe">☕ Support</a>
+        </div>
       </header>
+
+      <nav className="studioModeBar" aria-label="Choose analysis mode">
+        <div className="studioModeInner">
+          <a className="studioModeTab active" href="/" onClick={(event) => { event.preventDefault(); goHome(); }}><span className="studioModeIcon">▤</span><span><strong>Analyse Single File</strong><small>Discover insights, quality and visuals</small></span></a>
+          <a className="studioModeTab" href="/compare"><span className="studioModeIcon">↔</span><span><strong>Compare Datasets</strong><small>Find changes between two versions</small></span><em>NEW</em></a>
+        </div>
+      </nav>
 
       {!result ? (
         <section className="hero" id="top">
@@ -1218,6 +1229,11 @@ export default function Home() {
             <div><strong>03</strong><span><b>Know what matters first</b><small>Ranked insights with evidence behind every score</small></span></div>
             <div><strong>04</strong><span><b>Take the analysis with you</b><small>Visual discovery, CSV exports and branded PDF reports</small></span></div>
           </div>
+
+          <section className="supportLanding" id="support">
+            <div><span className="panelKicker">SUPPORT THE PROJECT</span><strong>Azhan Data Studio is independently built and free to use.</strong><p>If it saves you time, you can support continued development with a one-time contribution.</p></div>
+            {SUPPORT_URL ? <a className="supportPrimaryButton" href={SUPPORT_URL} target="_blank" rel="noreferrer">☕ Support Azhan Data Studio</a> : <span className="supportPending">Stripe support link coming soon</span>}
+          </section>
         </section>
       ) : (
         <>
@@ -1314,6 +1330,18 @@ export default function Home() {
                     <Metric label="Missing values" value={formatNumber(result.quality.missing_values)} />
                     <Metric label="Duplicate rows" value={formatNumber(result.quality.duplicate_rows)} />
                     <Metric label="Fields with gaps" value={formatNumber(missingFields.length)} />
+                  </div>
+                </section>
+
+                <section className="panel supportPanel" id="support">
+                  <div className="supportPanelCopy">
+                    <span className="panelKicker">INDEPENDENTLY BUILT</span>
+                    <h3>Did Azhan Data Studio save you time?</h3>
+                    <p>The studio stays free to use. If it helped you find something useful in your data, you can support continued development with a one-time contribution.</p>
+                  </div>
+                  <div className="supportPanelAction">
+                    {SUPPORT_URL ? <a className="supportPrimaryButton" href={SUPPORT_URL} target="_blank" rel="noreferrer">☕ Support development</a> : <span className="supportPending">Stripe support link coming soon</span>}
+                    <small>{SUPPORT_URL ? "Optional · secure checkout handled by Stripe" : "Add NEXT_PUBLIC_SUPPORT_URL to activate checkout"}</small>
                   </div>
                 </section>
               </div>
@@ -1455,6 +1483,7 @@ export default function Home() {
                   <div className="reportActionButtons">
                     <button className="primaryButton compactPrimary" onClick={printReport}>Print / Save PDF</button>
                     <button className="secondaryButton" onClick={exportInsightsCsv}>Download insights CSV</button>
+                    {SUPPORT_URL ? <a className="supportSecondaryButton" href={SUPPORT_URL} target="_blank" rel="noreferrer">☕ Support the project</a> : <a className="supportSecondaryButton" href="#support">☕ Support the project</a>}
                   </div>
                   {exportNotice && <div className="exportNotice">{exportNotice}</div>}
                 </section>
@@ -1600,7 +1629,7 @@ export default function Home() {
         </>
       )}
 
-      <footer className="siteFooter"><strong>Azhan Data Studio</strong><span>Created by Azhan Hassan · Data &amp; AI Automation Specialist</span><a href={PORTFOLIO_URL} target="_blank" rel="noreferrer">View Portfolio ↗</a></footer>
+      <footer className="siteFooter"><strong>Azhan Data Studio</strong><span>Created by Azhan Hassan · Data &amp; AI Automation Specialist</span><a href={PORTFOLIO_URL} target="_blank" rel="noreferrer">View Portfolio ↗</a><a className="footerSupport" href={SUPPORT_URL || "#support"} target={SUPPORT_URL ? "_blank" : undefined} rel={SUPPORT_URL ? "noreferrer" : undefined}>☕ Support the project</a></footer>
     </main>
   );
 }

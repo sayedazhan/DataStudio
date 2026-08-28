@@ -14,15 +14,17 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.insights import discover_insights
+from app.compare import compare_datasets, prepare_comparison
 
 APP_NAME = "Azhan Data Studio API"
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
+COMPARE_MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB per file
 SUPPORTED_EXTENSIONS = {".csv", ".xlsx"}
 
 app = FastAPI(
     title=APP_NAME,
-    description="Deterministic data-intelligence API for profiling, discovery, ranking, visualisation, and report-ready analysis.",
-    version="1.0.0",
+    description="Deterministic data-intelligence API for profiling, discovery, ranking, visualisation, dataset comparison, and report-ready analysis.",
+    version="1.1.0",
 )
 
 DEFAULT_CORS_ORIGINS = [
@@ -413,10 +415,11 @@ def _profile_column(
     return base, f"{unique_non_null} distinct non-missing values"
 
 
-async def _read_uploaded_bytes(file: UploadFile) -> bytes:
-    content = await file.read(MAX_FILE_SIZE + 1)
-    if len(content) > MAX_FILE_SIZE:
-        raise HTTPException(status_code=413, detail="File exceeds the current 50 MB limit.")
+async def _read_uploaded_bytes(file: UploadFile, max_size: int = MAX_FILE_SIZE) -> bytes:
+    content = await file.read(max_size + 1)
+    if len(content) > max_size:
+        limit_mb = max_size // (1024 * 1024)
+        raise HTTPException(status_code=413, detail=f"File exceeds the current {limit_mb} MB limit.")
     if not content:
         raise HTTPException(status_code=400, detail="The uploaded file is empty.")
     return content
@@ -616,3 +619,88 @@ async def inspect_dataset(
         "preview": preview,
     }
     return _serialise(result)
+
+
+def _validate_compare_upload(file: UploadFile) -> str:
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Both comparison files need filenames.")
+    extension = Path(file.filename).suffix.lower()
+    if extension not in SUPPORTED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Dataset Compare supports CSV and XLSX files only.")
+    return extension
+
+
+@app.post("/api/datasets/compare/prepare")
+async def prepare_dataset_comparison(
+    file_a: UploadFile = File(...),
+    file_b: UploadFile = File(...),
+    sheet_name_a: str | None = Form(default=None),
+    sheet_name_b: str | None = Form(default=None),
+) -> dict[str, Any]:
+    extension_a = _validate_compare_upload(file_a)
+    extension_b = _validate_compare_upload(file_b)
+    content_a = await _read_uploaded_bytes(file_a, COMPARE_MAX_FILE_SIZE)
+    content_b = await _read_uploaded_bytes(file_b, COMPARE_MAX_FILE_SIZE)
+    _validate_uploaded_format(content_a, extension_a)
+    _validate_uploaded_format(content_b, extension_b)
+
+    frame_a = _read_dataset(content_a, extension_a, sheet_name_a if extension_a == ".xlsx" else None)
+    frame_b = _read_dataset(content_b, extension_b, sheet_name_b if extension_b == ".xlsx" else None)
+    if frame_a.height == 0 or frame_b.height == 0:
+        raise HTTPException(status_code=400, detail="Both comparison datasets must contain at least one row.")
+
+    prepared = prepare_comparison(frame_a, frame_b)
+    prepared["dataset_a"].update({
+        "filename": file_a.filename,
+        "file_type": extension_a.removeprefix("."),
+        "file_size_bytes": len(content_a),
+        "sheet_name": sheet_name_a if extension_a == ".xlsx" else None,
+    })
+    prepared["dataset_b"].update({
+        "filename": file_b.filename,
+        "file_type": extension_b.removeprefix("."),
+        "file_size_bytes": len(content_b),
+        "sheet_name": sheet_name_b if extension_b == ".xlsx" else None,
+    })
+    return _serialise(prepared)
+
+
+@app.post("/api/datasets/compare")
+async def compare_dataset_versions(
+    file_a: UploadFile = File(...),
+    file_b: UploadFile = File(...),
+    key: str = Form(...),
+    sheet_name_a: str | None = Form(default=None),
+    sheet_name_b: str | None = Form(default=None),
+) -> dict[str, Any]:
+    extension_a = _validate_compare_upload(file_a)
+    extension_b = _validate_compare_upload(file_b)
+    content_a = await _read_uploaded_bytes(file_a, COMPARE_MAX_FILE_SIZE)
+    content_b = await _read_uploaded_bytes(file_b, COMPARE_MAX_FILE_SIZE)
+    _validate_uploaded_format(content_a, extension_a)
+    _validate_uploaded_format(content_b, extension_b)
+
+    frame_a = _read_dataset(content_a, extension_a, sheet_name_a if extension_a == ".xlsx" else None)
+    frame_b = _read_dataset(content_b, extension_b, sheet_name_b if extension_b == ".xlsx" else None)
+    try:
+        comparison = compare_datasets(frame_a, frame_b, key)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    comparison["dataset_a"] = {
+        "filename": file_a.filename,
+        "file_type": extension_a.removeprefix("."),
+        "file_size_bytes": len(content_a),
+        "rows": frame_a.height,
+        "columns": frame_a.width,
+        "sheet_name": sheet_name_a if extension_a == ".xlsx" else None,
+    }
+    comparison["dataset_b"] = {
+        "filename": file_b.filename,
+        "file_type": extension_b.removeprefix("."),
+        "file_size_bytes": len(content_b),
+        "rows": frame_b.height,
+        "columns": frame_b.width,
+        "sheet_name": sheet_name_b if extension_b == ".xlsx" else None,
+    }
+    return _serialise(comparison)

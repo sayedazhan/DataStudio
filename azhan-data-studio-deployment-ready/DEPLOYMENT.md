@@ -1,58 +1,64 @@
 # Azhan Data Studio - Production Deployment
 
-Architecture:
+Current architecture:
 - Frontend: Netlify (Next.js)
-- Backend: Render (FastAPI + Polars)
+- Backend: Railway (FastAPI + Polars)
 
-## 1. Put this project on GitHub
-Create a repository and upload the project root. Do not upload `.venv`, `node_modules`, `.next`, or `.env.local`.
+Dataset Compare v1.1 uses the same frontend and the same Railway backend. No second backend service or additional engine is required.
 
-## 2. Deploy backend on Render
-Create a new Web Service from the GitHub repository.
+## Railway backend
 
-Settings:
-- Root Directory: `backend`
-- Runtime: Python 3
+Use the existing DataStudio Railway service.
+
+If the GitHub repository contains the project inside `azhan-data-studio-deployment-ready`, use:
+- Root Directory: `/azhan-data-studio-deployment-ready/backend`
 - Build Command: `pip install -r requirements.txt`
 - Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 
-The included `backend/.python-version` pins Python 3.13.
+The included `.python-version` pins Python 3.13.
 
-After deployment, copy the public backend URL, for example:
-`https://azhan-data-studio-api.onrender.com`
+Keep this environment variable:
+- `CORS_ORIGINS=https://azhandatastudio.netlify.app`
 
-Test:
+If you later use a custom domain, add it as a comma-separated origin.
+
+After deployment, verify:
 - `/health`
 - `/docs`
+- `/api/datasets/compare/prepare` appears in the API docs
+- `/api/datasets/compare` appears in the API docs
 
-## 3. Deploy frontend on Netlify
-Import the same GitHub repository into Netlify.
-The included root `netlify.toml` points Netlify at the `frontend` directory.
+## Netlify frontend
 
-Add this Netlify environment variable before the production build:
-- `NEXT_PUBLIC_API_URL` = your Render backend URL, without a trailing slash
+Keep:
+- `NEXT_PUBLIC_API_URL` = the Railway public backend URL, with no trailing slash
+- `NEXT_PUBLIC_SUPPORT_URL` = the Stripe Payment Link, if/when support is enabled
 
-Deploy the site and copy the Netlify production URL.
+The new Dataset Compare page is available at:
+- `/compare`
 
-## 4. Allow the Netlify site in backend CORS
-On Render, add environment variable:
-- `CORS_ORIGINS` = your Netlify production origin, e.g. `https://azhan-data-studio.netlify.app`
+If Netlify is connected to GitHub, push the updated project and let Netlify rebuild. If using a manual deploy, deploy the updated frontend build/project using your existing workflow.
 
-If you later add a custom domain, use comma-separated origins, e.g.:
-`https://azhandatastudio.com,https://azhan-data-studio.netlify.app`
+## Production test checklist
 
-Redeploy/restart the Render service after changing the environment variable.
-
-## 5. Final test
-On the public Netlify URL test:
+Single-dataset workflow:
 - CSV upload
 - XLSX upload
-- Multi-sheet workbook selection
-- Re-analyse
+- multi-sheet workbook selection
 - Overview / Insights / Explore / Reports / Data Quality / Fields
 - Print / Save PDF
-- Download insights CSV
-- Home logo navigation
+- Download Insights CSV
 
-## Notes
-Uploaded datasets are sent directly from the browser to the FastAPI backend for analysis. They are not stored by the application code after the request finishes.
+Dataset Compare:
+- open `/compare`
+- upload `sample-data/compare-baseline.csv`
+- upload `sample-data/compare-current.csv`
+- Prepare comparison
+- confirm `OrderID` is recommended
+- Compare datasets
+- verify added = 1, removed = 1 and modified records are shown
+- verify `Channel` is reported as an added field
+
+## Data handling
+
+Uploaded datasets are sent from the browser to the FastAPI backend for processing. The application code does not save the uploaded files after the request finishes.

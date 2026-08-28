@@ -1,4 +1,4 @@
 [build]
-  base = "azhan-data-studio-deployment-ready/frontend"
+  base = "frontend"
   command = "npm run build"
   publish = ".next"

@@ -18,6 +18,7 @@ Upload a CSV or XLSX dataset and the application will:
 - assess data quality
 - produce a branded analytical report
 - export ranked insights to CSV
+- compare two dataset versions by a unique key and identify added, removed, modified, schema, and metric changes
 
 The analytical calculations do **not** use an AI assistant or LLM interpretation.
 
@@ -48,6 +49,10 @@ run-frontend.bat
 
 Open http://localhost:3000.
 
+## Dataset Compare
+
+Open `/compare` to compare a Previous / Baseline dataset with a Current / New dataset. See `README-DATASET-COMPARE.md` for v1 capabilities and limits.
+
 ## Reports
 
 The Reports workspace provides:
@@ -58,4 +63,4 @@ The Reports workspace provides:
 The report carries the Azhan Data Studio product identity, creator attribution, and portfolio reference. Print-specific styling removes internal scrollbars and constrains charts/tables to report-safe dimensions.
 
 ## Production deployment
-See `DEPLOYMENT.md` for the Netlify + Render deployment steps.
+See `DEPLOYMENT.md` for the current Netlify + Railway deployment steps.
