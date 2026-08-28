@@ -88,8 +88,31 @@ type ChangeContributor = {
   previous: number;
   current: number;
   change: number;
+  change_percent?: number | null;
+  status?: "new_group" | "removed_group" | "increase" | "decrease" | "unchanged";
+  direction_role?: "supports_change" | "offsets_change" | "neutral";
   net_change_contribution_percent?: number | null;
   absolute_movement_share_percent: number;
+};
+
+type DimensionExplanation = {
+  rank: number;
+  dimension: string;
+  explanatory_score: number;
+  driver_concentration_percent: number;
+  top_driver_share_percent: number;
+  direction_alignment_percent: number;
+  aligned_movement: number;
+  offsetting_movement: number;
+  absolute_movement: number;
+  changed_group_count: number;
+  new_group_count: number;
+  removed_group_count: number;
+  reconciliation_percent: number;
+  primary_driver: { group: string; change: number; previous: number; current: number };
+  biggest_offset?: { group: string; change: number; previous: number; current: number } | null;
+  contributors: ChangeContributor[];
+  summary: string;
 };
 
 type ExplainChange = {
@@ -100,7 +123,13 @@ type ExplainChange = {
   total_change_percent?: number | null;
   dimension: string;
   driver_concentration_percent: number;
+  direction_alignment_percent: number;
+  aligned_movement: number;
+  offsetting_movement: number;
+  dimensions_scanned: number;
   contributors: ChangeContributor[];
+  dimensions: DimensionExplanation[];
+  story_points: Array<{ label: string; value: string; detail: string; tone: string }>;
   summary: string;
   caveat: string;
 };
@@ -264,6 +293,7 @@ export default function ComparePage() {
   const [error, setError] = useState("");
   const [recordTab, setRecordTab] = useState<RecordTab>("modified");
   const [selectedExplainMetric, setSelectedExplainMetric] = useState("");
+  const [selectedExplainDimension, setSelectedExplainDimension] = useState("");
 
   const selectedCandidate = useMemo(
     () => preparation?.key_candidates.find((item) => item.field === selectedKey) ?? null,
@@ -273,6 +303,10 @@ export default function ComparePage() {
     () => result?.explain_changes?.find((item) => item.metric === selectedExplainMetric) ?? result?.explain_changes?.[0] ?? null,
     [result, selectedExplainMetric],
   );
+  const selectedDimensionExplanation = useMemo(
+    () => selectedExplanation?.dimensions?.find((item) => item.dimension === selectedExplainDimension) ?? selectedExplanation?.dimensions?.[0] ?? null,
+    [selectedExplanation, selectedExplainDimension],
+  );
 
   function resetComparison() {
     setPreparation(null);
@@ -280,6 +314,7 @@ export default function ComparePage() {
     setSelectedKey("");
     setRecordTab("modified");
     setSelectedExplainMetric("");
+    setSelectedExplainDimension("");
     setError("");
   }
 
@@ -314,7 +349,7 @@ export default function ComparePage() {
       return;
     }
     if (selected.size > COMPARE_MAX_BYTES) {
-      setError("Dataset Compare v1.1 currently limits each file to 20 MB.");
+      setError("Dataset Compare currently limits each file to 20 MB.");
       return;
     }
 
@@ -379,6 +414,7 @@ export default function ComparePage() {
       const typed = payload as CompareResult;
       setResult(typed);
       setSelectedExplainMetric(typed.explain_changes?.[0]?.metric ?? "");
+      setSelectedExplainDimension(typed.explain_changes?.[0]?.dimensions?.[0]?.dimension ?? "");
       window.setTimeout(() => document.getElementById("comparison-results")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
     } catch (err) {
       setResult(null);
@@ -467,7 +503,7 @@ export default function ComparePage() {
 
         {preparation && (
           <section className="compareSetupPanel">
-            <div className="compareStepHeading compact"><span>02</span><div><small>MATCH RECORDS</small><h2>Choose the comparison key</h2><p>The key must identify one row uniquely in both datasets. Dataset Compare v1.1 uses one key field; composite keys come later.</p></div></div>
+            <div className="compareStepHeading compact"><span>02</span><div><small>MATCH RECORDS</small><h2>Choose the comparison key</h2><p>The key must identify one row uniquely in both datasets. Dataset Compare uses one key field; composite keys come later.</p></div></div>
 
             <div className="comparePrepMetrics">
               <MetricCard label="Previous rows" value={formatNumber(preparation.dataset_a.rows)} />
@@ -558,21 +594,55 @@ export default function ComparePage() {
               </section>
             </div>
 
-            {result.explain_changes?.length > 0 && selectedExplanation && (
-              <section className="panel explainChangePanel">
+            {result.explain_changes?.length > 0 && selectedExplanation && selectedDimensionExplanation && (
+              <section className="panel explainChangePanel explainV2Panel">
                 <div className="explainChangeHeader">
-                  <div><span className="panelKicker">EXPLAIN CHANGE</span><h3>What drove the movement?</h3><p>Deterministic arithmetic decomposition across shared categorical dimensions.</p></div>
-                  <label><span>Metric</span><select value={selectedExplanation.metric} onChange={(event) => setSelectedExplainMetric(event.target.value)}>{result.explain_changes.map((item) => <option key={item.metric} value={item.metric}>{item.metric}</option>)}</select></label>
+                  <div><span className="panelKicker">EXPLAIN CHANGE V2</span><h3>What really drove the movement?</h3><p>Ranked arithmetic driver analysis across multiple shared business dimensions.</p></div>
+                  <label><span>Metric</span><select value={selectedExplanation.metric} onChange={(event) => {
+                    const metric = event.target.value;
+                    setSelectedExplainMetric(metric);
+                    const next = result.explain_changes.find((item) => item.metric === metric);
+                    setSelectedExplainDimension(next?.dimensions?.[0]?.dimension ?? "");
+                  }}>{result.explain_changes.map((item) => <option key={item.metric} value={item.metric}>{item.metric}</option>)}</select></label>
                 </div>
+
                 <div className="explainHeroRow">
                   <div className="explainMetricMove"><span>{selectedExplanation.metric}</span><strong className={selectedExplanation.total_change > 0 ? "positive" : selectedExplanation.total_change < 0 ? "negative" : ""}>{formatSigned(selectedExplanation.total_change, 2)}</strong><small>{formatDecimal(selectedExplanation.previous_total, 2)} → {formatDecimal(selectedExplanation.current_total, 2)} · {formatPercent(selectedExplanation.total_change_percent)}</small></div>
-                  <div className="explainNarrative"><span>BEST EXPLANATORY DIMENSION</span><strong>{selectedExplanation.dimension}</strong><p>{selectedExplanation.summary}</p></div>
+                  <div className="explainNarrative"><span>CHANGE STORY</span><strong>{selectedDimensionExplanation.dimension} ranks #{selectedDimensionExplanation.rank}</strong><p>{selectedDimensionExplanation.summary}</p><small>{selectedExplanation.dimensions_scanned} candidate dimensions scanned · reconciliation {formatDecimal(selectedDimensionExplanation.reconciliation_percent, 1)}%</small></div>
                 </div>
-                <div className="driverList">{selectedExplanation.contributors.map((driver) => {
-                  const maxAbs = Math.max(...selectedExplanation.contributors.map((item) => Math.abs(item.change)), 1);
-                  return <div className="driverRow" key={driver.group}><div className="driverLabel"><strong>{driver.group}</strong><span>{formatDecimal(driver.previous, 1)} → {formatDecimal(driver.current, 1)}</span></div><div className="driverTrack"><span className={driver.change < 0 ? "negative" : "positive"} style={{ width: `${Math.max(3, Math.abs(driver.change) / maxAbs * 100)}%` }} /></div><div className={`driverValue ${driver.change > 0 ? "positive" : driver.change < 0 ? "negative" : ""}`}><strong>{formatSigned(driver.change, 2)}</strong><small>{formatDecimal(driver.absolute_movement_share_percent, 1)}% of absolute movement</small></div></div>;
+
+                <div className="explainStoryGrid">
+                  <article><span>PRIMARY DRIVER</span><strong>{selectedDimensionExplanation.primary_driver.group}</strong><em className={selectedDimensionExplanation.primary_driver.change > 0 ? "positive" : "negative"}>{formatSigned(selectedDimensionExplanation.primary_driver.change, 2)}</em><small>largest movement aligned with the overall change</small></article>
+                  <article><span>DRIVER CONCENTRATION</span><strong>{formatDecimal(selectedDimensionExplanation.driver_concentration_percent, 1)}%</strong><small>of absolute movement sits in the top 3 groups</small></article>
+                  <article><span>DIRECTION ALIGNMENT</span><strong>{formatDecimal(selectedDimensionExplanation.direction_alignment_percent, 1)}%</strong><small>of movement supports the overall direction</small></article>
+                  <article><span>BIGGEST OFFSET</span><strong>{selectedDimensionExplanation.biggest_offset?.group ?? "No material offset"}</strong>{selectedDimensionExplanation.biggest_offset ? <em className={selectedDimensionExplanation.biggest_offset.change > 0 ? "positive" : "negative"}>{formatSigned(selectedDimensionExplanation.biggest_offset.change, 2)}</em> : null}<small>largest group moving against the overall direction</small></article>
+                </div>
+
+                <div className="dimensionRankSection">
+                  <div className="dimensionRankHeading"><div><span className="panelKicker">DIMENSION RANKING</span><h4>Which lens best explains the change?</h4></div><small>Score blends direction alignment, driver concentration and signal compactness.</small></div>
+                  <div className="dimensionRankTabs">{selectedExplanation.dimensions.map((item) => (
+                    <button key={item.dimension} className={selectedDimensionExplanation.dimension === item.dimension ? "active" : ""} onClick={() => setSelectedExplainDimension(item.dimension)}>
+                      <span>#{item.rank}</span><strong>{item.dimension}</strong><em>{formatDecimal(item.explanatory_score, 0)}/100</em>
+                    </button>
+                  ))}</div>
+                </div>
+
+                <div className="driverBalanceWrap">
+                  <div className="driverBalanceHeader"><div><span className="panelKicker">DRIVER BALANCE</span><h4>{selectedDimensionExplanation.dimension} contribution profile</h4></div><p>{selectedDimensionExplanation.summary}</p></div>
+                  {(() => {
+                    const totalMovement = Math.max(selectedDimensionExplanation.aligned_movement + selectedDimensionExplanation.offsetting_movement, 0.000001);
+                    const alignedPct = (selectedDimensionExplanation.aligned_movement / totalMovement) * 100;
+                    const offsetPct = (selectedDimensionExplanation.offsetting_movement / totalMovement) * 100;
+                    return <div className="driverBalance"><div className="driverBalanceBar"><span className="aligned" style={{ width: `${alignedPct}%` }} /><span className="offset" style={{ width: `${offsetPct}%` }} /></div><div className="driverBalanceLegend"><span><i className="aligned" />Aligned movement <strong>{formatDecimal(alignedPct, 1)}%</strong></span><span><i className="offset" />Offsetting movement <strong>{formatDecimal(offsetPct, 1)}%</strong></span><span>Changed groups <strong>{selectedDimensionExplanation.changed_group_count}</strong></span>{selectedDimensionExplanation.new_group_count > 0 ? <span>New groups <strong>{selectedDimensionExplanation.new_group_count}</strong></span> : null}{selectedDimensionExplanation.removed_group_count > 0 ? <span>Removed groups <strong>{selectedDimensionExplanation.removed_group_count}</strong></span> : null}</div></div>;
+                  })()}
+                </div>
+
+                <div className="driverList driverListV2">{selectedDimensionExplanation.contributors.map((driver) => {
+                  const maxAbs = Math.max(...selectedDimensionExplanation.contributors.map((item) => Math.abs(item.change)), 1);
+                  const statusLabel = driver.status === "new_group" ? "New group" : driver.status === "removed_group" ? "Removed group" : driver.direction_role === "offsets_change" ? "Offsets change" : "Supports change";
+                  return <div className="driverRow" key={driver.group}><div className="driverLabel"><div><strong>{driver.group}</strong><em className={driver.direction_role === "offsets_change" ? "offset" : "support"}>{statusLabel}</em></div><span>{formatDecimal(driver.previous, 1)} → {formatDecimal(driver.current, 1)}{driver.change_percent != null ? ` · ${formatPercent(driver.change_percent)}` : ""}</span></div><div className="driverTrack"><span className={driver.change < 0 ? "negative" : "positive"} style={{ width: `${Math.max(3, Math.abs(driver.change) / maxAbs * 100)}%` }} /></div><div className={`driverValue ${driver.change > 0 ? "positive" : driver.change < 0 ? "negative" : ""}`}><strong>{formatSigned(driver.change, 2)}</strong><small>{formatDecimal(driver.absolute_movement_share_percent, 1)}% of absolute movement</small></div></div>;
                 })}</div>
-                <div className="explainCaveat">{selectedExplanation.caveat}</div>
+                <div className="explainCaveat"><strong>How to read this:</strong> {selectedExplanation.caveat}</div>
               </section>
             )}
 
