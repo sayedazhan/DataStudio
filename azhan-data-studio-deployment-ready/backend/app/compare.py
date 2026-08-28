@@ -234,6 +234,125 @@ def _group_metric_totals(frame: pl.DataFrame, dimension: str, metric: str) -> di
     return {str(row["__dimension"]): float(row["__total"] or 0.0) for row in grouped.to_dicts()}
 
 
+def _driver_status(previous: dict[str, float], current: dict[str, float], group: str, before: float, after: float) -> str:
+    if group not in previous:
+        return "new_group"
+    if group not in current:
+        return "removed_group"
+    if after > before:
+        return "increase"
+    if after < before:
+        return "decrease"
+    return "unchanged"
+
+
+def _dimension_explanation(
+    frame_a: pl.DataFrame,
+    frame_b: pl.DataFrame,
+    dimension: str,
+    metric: str,
+    total_change: float,
+) -> dict[str, Any] | None:
+    previous = _group_metric_totals(frame_a, dimension, metric)
+    current = _group_metric_totals(frame_b, dimension, metric)
+    groups = sorted(set(previous) | set(current))
+    drivers: list[dict[str, Any]] = []
+
+    for group in groups:
+        before = float(previous.get(group, 0.0))
+        after = float(current.get(group, 0.0))
+        change = after - before
+        if abs(change) < 1e-12:
+            continue
+        change_percent = None if abs(before) < 1e-12 else (change / abs(before)) * 100
+        drivers.append(
+            {
+                "group": group,
+                "previous": before,
+                "current": after,
+                "change": change,
+                "change_percent": change_percent,
+                "status": _driver_status(previous, current, group, before, after),
+            }
+        )
+
+    if not drivers:
+        return None
+
+    drivers.sort(key=lambda item: abs(item["change"]), reverse=True)
+    absolute_movement = sum(abs(item["change"]) for item in drivers)
+    if absolute_movement <= 1e-12:
+        return None
+
+    net_sign = 1 if total_change > 1e-12 else -1 if total_change < -1e-12 else 0
+    aligned_items = [item for item in drivers if net_sign == 0 or item["change"] * net_sign > 0]
+    offset_items = [item for item in drivers if net_sign != 0 and item["change"] * net_sign < 0]
+    aligned_movement = sum(abs(item["change"]) for item in aligned_items)
+    offsetting_movement = sum(abs(item["change"]) for item in offset_items)
+    direction_alignment = (aligned_movement / absolute_movement) * 100 if absolute_movement else 0.0
+    top3_share = (sum(abs(item["change"]) for item in drivers[:3]) / absolute_movement) * 100
+    top1_share = (abs(drivers[0]["change"]) / absolute_movement) * 100
+    compactness = 100 / (1 + 0.08 * max(len(drivers) - 1, 0))
+    score = min(100.0, max(0.0, 0.35 * direction_alignment + 0.30 * top3_share + 0.20 * top1_share + 0.15 * compactness))
+
+    sum_of_group_changes = sum(item["change"] for item in drivers)
+    reconciliation_error = sum_of_group_changes - total_change
+    reconciliation_base = max(abs(total_change), absolute_movement, 1e-12)
+    reconciliation_percent = max(0.0, 100.0 - (abs(reconciliation_error) / reconciliation_base) * 100)
+
+    enriched: list[dict[str, Any]] = []
+    for item in drivers[:8]:
+        contribution = None if abs(total_change) < 1e-12 else (item["change"] / total_change) * 100
+        direction_role = "neutral"
+        if net_sign != 0:
+            direction_role = "supports_change" if item["change"] * net_sign > 0 else "offsets_change"
+        enriched.append(
+            {
+                **item,
+                "net_change_contribution_percent": contribution,
+                "absolute_movement_share_percent": (abs(item["change"]) / absolute_movement) * 100,
+                "direction_role": direction_role,
+            }
+        )
+
+    primary = next((item for item in drivers if net_sign == 0 or item["change"] * net_sign > 0), drivers[0])
+    biggest_offset = offset_items[0] if offset_items else None
+    overall_direction = "increase" if total_change > 0 else "decrease" if total_change < 0 else "movement"
+    dimension_summary = (
+        f"{dimension} is a strong decomposition lens for the {overall_direction}, with {direction_alignment:.1f}% direction alignment. "
+        f"Its top three groups account for {top3_share:.1f}% of absolute movement."
+    )
+
+    return {
+        "dimension": dimension,
+        "explanatory_score": round(score, 1),
+        "driver_concentration_percent": round(top3_share, 2),
+        "top_driver_share_percent": round(top1_share, 2),
+        "direction_alignment_percent": round(direction_alignment, 2),
+        "aligned_movement": aligned_movement,
+        "offsetting_movement": offsetting_movement,
+        "absolute_movement": absolute_movement,
+        "changed_group_count": len(drivers),
+        "new_group_count": sum(1 for item in drivers if item["status"] == "new_group"),
+        "removed_group_count": sum(1 for item in drivers if item["status"] == "removed_group"),
+        "reconciliation_percent": round(reconciliation_percent, 2),
+        "primary_driver": {
+            "group": primary["group"],
+            "change": primary["change"],
+            "previous": primary["previous"],
+            "current": primary["current"],
+        },
+        "biggest_offset": None if biggest_offset is None else {
+            "group": biggest_offset["group"],
+            "change": biggest_offset["change"],
+            "previous": biggest_offset["previous"],
+            "current": biggest_offset["current"],
+        },
+        "contributors": enriched,
+        "summary": dimension_summary,
+    }
+
+
 def _explain_metric_change(
     frame_a: pl.DataFrame,
     frame_b: pl.DataFrame,
@@ -242,76 +361,80 @@ def _explain_metric_change(
 ) -> dict[str, Any] | None:
     metric = metric_change["field"]
     total_change = float(metric_change["sum_change"])
-    best: dict[str, Any] | None = None
+    dimension_results: list[dict[str, Any]] = []
 
     for dimension in dimensions:
-        previous = _group_metric_totals(frame_a, dimension, metric)
-        current = _group_metric_totals(frame_b, dimension, metric)
-        groups = sorted(set(previous) | set(current))
-        drivers = []
-        for group in groups:
-            before = float(previous.get(group, 0.0))
-            after = float(current.get(group, 0.0))
-            change = after - before
-            if abs(change) < 1e-12:
-                continue
-            drivers.append({
-                "group": group,
-                "previous": before,
-                "current": after,
-                "change": change,
-            })
+        explanation = _dimension_explanation(frame_a, frame_b, dimension, metric, total_change)
+        if explanation is not None:
+            dimension_results.append(explanation)
 
-        if not drivers:
-            continue
-
-        drivers.sort(key=lambda item: abs(item["change"]), reverse=True)
-        absolute_movement = sum(abs(item["change"]) for item in drivers)
-        if absolute_movement <= 1e-12:
-            continue
-
-        top = drivers[:6]
-        top3_share = (sum(abs(item["change"]) for item in drivers[:3]) / absolute_movement) * 100
-        top1_share = (abs(drivers[0]["change"]) / absolute_movement) * 100
-        score = top3_share + min(top1_share, 70) * 0.15
-
-        enriched = []
-        for item in top:
-            contribution = None if abs(total_change) < 1e-12 else (item["change"] / total_change) * 100
-            enriched.append({
-                **item,
-                "net_change_contribution_percent": contribution,
-                "absolute_movement_share_percent": (abs(item["change"]) / absolute_movement) * 100,
-            })
-
-        candidate = {
-            "metric": metric,
-            "previous_total": float(metric_change["previous_sum"]),
-            "current_total": float(metric_change["current_sum"]),
-            "total_change": total_change,
-            "total_change_percent": metric_change.get("sum_change_percent"),
-            "dimension": dimension,
-            "driver_concentration_percent": top3_share,
-            "contributors": enriched,
-            "score": score,
-        }
-        if best is None or candidate["score"] > best["score"]:
-            best = candidate
-
-    if best is None:
+    if not dimension_results:
         return None
 
-    top_driver = best["contributors"][0]
-    direction = "increase" if best["total_change"] > 0 else "decrease" if best["total_change"] < 0 else "movement"
-    top_direction = "increased" if top_driver["change"] > 0 else "decreased"
-    best["summary"] = (
-        f"{best['metric']} recorded a {direction} of {best['total_change']:+,.2f}. "
-        f"The largest arithmetic driver within {best['dimension']} was {top_driver['group']}, "
-        f"which {top_direction} by {top_driver['change']:+,.2f}."
+    dimension_results.sort(key=lambda item: item["explanatory_score"], reverse=True)
+    dimension_results = dimension_results[:5]
+    for index, item in enumerate(dimension_results, start=1):
+        item["rank"] = index
+
+    best = dimension_results[0]
+    primary = best["primary_driver"]
+    primary_direction = "increased" if primary["change"] > 0 else "decreased"
+    direction = "increase" if total_change > 0 else "decrease" if total_change < 0 else "movement"
+    summary = (
+        f"{metric} recorded a {direction} of {total_change:+,.2f}. "
+        f"{best['dimension']} is the highest-ranked decomposition dimension (score {best['explanatory_score']:.0f}/100). "
+        f"Its primary driver, {primary['group']}, {primary_direction} by {primary['change']:+,.2f}."
     )
-    best["caveat"] = "Drivers are an arithmetic decomposition of the change by category; they do not establish causality."
-    best.pop("score", None)
-    return best
+
+    story_points = [
+        {
+            "label": "Primary driver",
+            "value": str(primary["group"]),
+            "detail": f"{primary['change']:+,.2f} movement",
+            "tone": "positive" if primary["change"] > 0 else "negative",
+        },
+        {
+            "label": "Driver concentration",
+            "value": f"{best['driver_concentration_percent']:.1f}%",
+            "detail": "share of absolute movement from top 3 groups",
+            "tone": "neutral",
+        },
+        {
+            "label": "Direction alignment",
+            "value": f"{best['direction_alignment_percent']:.1f}%",
+            "detail": "movement aligned with the overall direction",
+            "tone": "neutral",
+        },
+    ]
+    if best["biggest_offset"] is not None:
+        offset = best["biggest_offset"]
+        story_points.append(
+            {
+                "label": "Biggest offset",
+                "value": str(offset["group"]),
+                "detail": f"{offset['change']:+,.2f} offsetting movement",
+                "tone": "negative" if total_change > 0 else "positive",
+            }
+        )
+
+    return {
+        "metric": metric,
+        "previous_total": float(metric_change["previous_sum"]),
+        "current_total": float(metric_change["current_sum"]),
+        "total_change": total_change,
+        "total_change_percent": metric_change.get("sum_change_percent"),
+        "dimension": best["dimension"],
+        "driver_concentration_percent": best["driver_concentration_percent"],
+        "direction_alignment_percent": best["direction_alignment_percent"],
+        "aligned_movement": best["aligned_movement"],
+        "offsetting_movement": best["offsetting_movement"],
+        "dimensions_scanned": len(dimensions),
+        "contributors": best["contributors"],
+        "dimensions": dimension_results,
+        "story_points": story_points,
+        "summary": summary,
+        "caveat": "Driver analysis is a deterministic arithmetic decomposition by category. Rankings indicate explanatory concentration, not statistical or causal proof.",
+    }
 
 
 def _explain_changes(
@@ -323,12 +446,11 @@ def _explain_changes(
 ) -> list[dict[str, Any]]:
     dimensions = _candidate_dimensions(frame_a, frame_b, common_columns, key)
     explanations: list[dict[str, Any]] = []
-    for metric_change in metric_changes[:8]:
+    for metric_change in metric_changes[:10]:
         explanation = _explain_metric_change(frame_a, frame_b, metric_change, dimensions)
         if explanation is not None:
             explanations.append(explanation)
     return explanations
-
 
 def compare_datasets(frame_a: pl.DataFrame, frame_b: pl.DataFrame, key: str) -> dict[str, Any]:
     preparation = prepare_comparison(frame_a, frame_b)
@@ -342,7 +464,7 @@ def compare_datasets(frame_a: pl.DataFrame, frame_b: pl.DataFrame, key: str) -> 
     if candidate["previous"]["missing"] or candidate["current"]["missing"]:
         raise ValueError("The comparison key contains missing values. Choose a field with no missing keys.")
     if candidate["previous"]["duplicate_non_null"] or candidate["current"]["duplicate_non_null"]:
-        raise ValueError("The comparison key is not unique in both datasets. Dataset Compare v1.1 requires one unique key per row.")
+        raise ValueError("The comparison key is not unique in both datasets. Dataset Compare requires one unique key per row.")
 
     view_a = _comparison_view(frame_a, key, common_columns)
     view_b = _comparison_view(frame_b, key, common_columns)
@@ -451,5 +573,5 @@ def compare_datasets(frame_a: pl.DataFrame, frame_b: pl.DataFrame, key: str) -> 
             "removed_records": MAX_PREVIEW_ROWS,
         },
         "method": "Deterministic key-based comparison using exact field-value changes across shared columns.",
-        "note": "Dataset Compare v1.1 requires a unique, non-missing comparison key in both datasets.",
+        "note": "Dataset Compare requires a unique, non-missing comparison key in both datasets.",
     }
