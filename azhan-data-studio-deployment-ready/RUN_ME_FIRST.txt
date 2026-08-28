@@ -1,0 +1,28 @@
+AZHAN DATA STUDIO - LOCAL START
+
+1. BACKEND
+Open PowerShell in the backend folder:
+
+py -3.13 -m pip install --user -r requirements.txt
+py -3.13 -m uvicorn app.main:app --reload
+
+Backend docs:
+http://127.0.0.1:8000/docs
+
+2. FRONTEND
+Open a second PowerShell window in the frontend folder:
+
+npm install
+copy .env.local.example .env.local
+npm run dev
+
+Frontend:
+http://localhost:3000
+
+Compare:
+http://localhost:3000/compare
+
+Forecast:
+http://localhost:3000/forecast
+
+Note: On corporate/OneDrive folders Python venv creation can fail. The commands above intentionally use the installed Python 3.13 + user packages and do not require a local .venv.

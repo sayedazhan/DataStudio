@@ -1,0 +1,13 @@
+Employee_ID,Department,Start_Date,Salary,Performance_Score,Active,Office
+1001,Operations,2022-02-14,78000,82,true,Melbourne
+1002,Finance,2021-08-30,92000,91,true,Sydney
+1003,Technology,2020-01-12,118000,88,true,Melbourne
+1004,Operations,2023-05-18,74000,76,true,Brisbane
+1005,People,2019-11-04,86000,94,true,Melbourne
+1006,Finance,2024-02-01,81000,79,true,Sydney
+1007,Technology,2022-09-22,121000,96,true,Brisbane
+1008,Operations,2021-03-15,,69,false,Melbourne
+1009,People,2023-07-10,79000,84,true,Sydney
+1010,Technology,2020-06-29,115000,90,true,Melbourne
+1011,Finance,2022-12-03,95000,87,true,Brisbane
+1012,Operations,2024-04-17,72000,73,true,Melbourne

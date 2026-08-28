@@ -1,0 +1,7 @@
+OrderID,Region,Product,Revenue,Cost,Status,Channel
+1001,VIC,Alpha,1320,790,Closed,Web
+1002,NSW,Beta,1480,1120,Open,Direct
+1004,VIC,Gamma,2100,1450,Open,Dealer
+1005,NSW,Alpha,1510,900,Closed,Web
+1006,SA,Beta,760,510,Closed,Direct
+1007,WA,Delta,890,590,Open,Web
