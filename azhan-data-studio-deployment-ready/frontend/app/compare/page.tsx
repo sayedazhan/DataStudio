@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, useMemo, useRef, useState } from "react";
+import { ToolPdfReport, ToolPdfSection, printToolReport } from "../components/tool-report";
 
 type WorkbookSheet = {
   index: number;
@@ -451,7 +452,8 @@ export default function ComparePage() {
           <a className="studioModeTab" href="/"><span className="studioModeIcon">▤</span><span><strong>Analyse Single File</strong><small>Discover insights, quality and visuals</small></span></a>
           <a className="studioModeTab active" href="/compare"><span className="studioModeIcon">↔</span><span><strong>Compare Datasets</strong><small>Find and explain what changed</small></span></a>
           <a className="studioModeTab" href="/forecast"><span className="studioModeIcon">↗</span><span><strong>Forecast</strong><small>Project a metric into future periods</small></span></a>
-          <a className="studioModeTab" href="/scenario"><span className="studioModeIcon">◇</span><span><strong>Scenario</strong><small>Test assumptions before you decide</small></span><em>NEW</em></a>
+          <a className="studioModeTab" href="/scenario"><span className="studioModeIcon">◇</span><span><strong>Scenario</strong><small>Test assumptions before you decide</small></span></a>
+          <a className="studioModeTab" href="/statistics"><span className="studioModeIcon">Σ</span><span><strong>Statistics</strong><small>Validate relationships and differences</small></span><em>NEW</em></a>
         </div>
       </nav>
 
@@ -554,7 +556,7 @@ export default function ComparePage() {
 
         {result && (
           <section className="compareResults" id="comparison-results">
-            <div className="compareStepHeading"><span>03</span><div><small>COMPARISON RESULTS</small><h2>{result.dataset_a.filename} → {result.dataset_b.filename}</h2><p>Matched using <strong>{result.key.field}</strong>. The results below are calculated directly from the two uploaded versions.</p></div></div>
+            <div className="compareStepHeading unifiedDashboardHeading"><span>03</span><div><small>COMPARISON DASHBOARD</small><h2>{result.dataset_a.filename} → {result.dataset_b.filename}</h2><p>Matched using <strong>{result.key.field}</strong>. The results below are calculated directly from the two uploaded versions.</p></div><div className="dashboardActionGroup"><button className="pdfReportButton" onClick={() => printToolReport(`Comparison Report - ${result.dataset_a.filename} vs ${result.dataset_b.filename}`)}>Download PDF Report</button></div></div>
 
             <div className="compareSummaryGrid">
               <MetricCard label="Added" value={`+${formatNumber(result.summary.added_records)}`} tone="good" />
@@ -564,6 +566,16 @@ export default function ComparePage() {
               <MetricCard label="Row change" value={`${formatSigned(result.summary.row_change, 0)} (${formatPercent(result.summary.row_change_percent)})`} />
               <MetricCard label="Key match" value={`${formatDecimal(result.summary.match_percent, 1)}%`} />
             </div>
+
+            <section className="panel unifiedMeaningPanel compareMeaningPanel">
+              <div className="unifiedMeaningMark">↔</div>
+              <div className="unifiedMeaningCopy">
+                <span className="panelKicker">WHAT THIS MEANS</span>
+                <h3>{result.highlights[0]?.title ?? "The two datasets have been reconciled."}</h3>
+                <p>{result.highlights[0]?.detail ?? "Data Studio matched the shared business key and separated added, removed, modified and unchanged records."}</p>
+                <div className="unifiedMeaningChips"><span>{formatNumber(result.summary.modified_records)} modified</span><span>{formatNumber(result.summary.added_records)} added</span><span>{formatNumber(result.summary.removed_records)} removed</span><span>{formatDecimal(result.summary.match_percent, 1)}% key match</span></div>
+              </div>
+            </section>
 
             <div className="compareHighlights">
               {result.highlights.map((item, index) => (
@@ -717,6 +729,46 @@ export default function ComparePage() {
             </section>
 
             <div className="compareMethodNote"><strong>How this comparison works</strong><span>{result.method} {result.note}</span></div>
+
+            <ToolPdfReport
+              tool="Dataset Compare"
+              title={`${result.dataset_a.filename} → ${result.dataset_b.filename}`}
+              subtitle={`A decision-ready comparison matched on ${result.key.field}, covering record movement, metric changes, schema changes and the strongest arithmetic drivers.`}
+              dataset={`${result.dataset_a.filename} vs ${result.dataset_b.filename}`}
+              sheet={[result.dataset_a.sheet_name, result.dataset_b.sheet_name].filter(Boolean).join(" vs ") || null}
+              metrics={[
+                { label: "Added records", value: `+${formatNumber(result.summary.added_records)}` },
+                { label: "Removed records", value: `−${formatNumber(result.summary.removed_records)}` },
+                { label: "Modified records", value: formatNumber(result.summary.modified_records) },
+                { label: "Unchanged", value: formatNumber(result.summary.unchanged_records) },
+                { label: "Key match", value: `${formatDecimal(result.summary.match_percent, 1)}%` },
+                { label: "Row movement", value: `${formatSigned(result.summary.row_change, 0)}`, detail: formatPercent(result.summary.row_change_percent) },
+              ]}
+              methodology={result.method}
+              caveat={result.note}
+            >
+              <ToolPdfSection eyebrow="Executive summary" title="What changed">
+                <div className="toolPdfFindingList">
+                  {result.highlights.slice(0, 6).map((item, index) => <article key={`${item.type}-${index}`}><span>{index + 1}</span><div><strong>{item.title}</strong><p>{item.detail}</p></div></article>)}
+                </div>
+              </ToolPdfSection>
+              {result.metric_changes.length > 0 && <ToolPdfSection eyebrow="Metric movement" title="Largest numeric changes">
+                <table className="toolPdfTable"><thead><tr><th>Metric</th><th>Previous</th><th>Current</th><th>Change</th><th>Change %</th></tr></thead><tbody>
+                  {result.metric_changes.slice(0, 12).map((metric) => <tr key={metric.field}><td><strong>{metric.field}</strong></td><td>{formatDecimal(metric.previous_sum, 2)}</td><td>{formatDecimal(metric.current_sum, 2)}</td><td>{formatSigned(metric.sum_change, 2)}</td><td>{formatPercent(metric.sum_change_percent)}</td></tr>)}
+                </tbody></table>
+              </ToolPdfSection>}
+              {result.explain_changes.length > 0 && <ToolPdfSection eyebrow="Explain change" title="Strongest arithmetic drivers">
+                <div className="toolPdfFindingList">
+                  {result.explain_changes.slice(0, 6).map((explain, index) => { const best = explain.dimensions?.[0]; return <article key={explain.metric}><span>{index + 1}</span><div><strong>{explain.metric}: {formatSigned(explain.total_change, 2)} ({formatPercent(explain.total_change_percent)})</strong><p>{best ? `${best.dimension} ranks as the strongest explanatory dimension. ${best.summary}` : explain.summary}</p></div></article>; })}
+                </div>
+              </ToolPdfSection>}
+              <ToolPdfSection eyebrow="Structure" title="Schema changes">
+                <div className="toolPdfTwoCol">
+                  <div><div className="toolPdfKeyValue"><span>Added fields</span><strong>{result.schema_changes.added_columns.length}</strong></div><p>{result.schema_changes.added_columns.join(", ") || "None"}</p></div>
+                  <div><div className="toolPdfKeyValue"><span>Removed fields</span><strong>{result.schema_changes.removed_columns.length}</strong></div><p>{result.schema_changes.removed_columns.join(", ") || "None"}</p></div>
+                </div>
+              </ToolPdfSection>
+            </ToolPdfReport>
           </section>
         )}
       </section>

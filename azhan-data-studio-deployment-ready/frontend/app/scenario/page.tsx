@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, useMemo, useRef, useState } from "react";
+import { ToolPdfReport, ToolPdfSection, printToolReport } from "../components/tool-report";
 
 type WorkbookSheet = { index: number; name: string; rows: number; columns: number; analysis_ready: boolean; classification: string; recommended: boolean; };
 type WorkbookInfo = { filename: string; file_size_bytes: number; sheet_count: number; recommended_sheet?: string | null; sheets: WorkbookSheet[]; };
@@ -168,7 +169,8 @@ export default function ScenarioPage() {
       <a className="studioModeTab" href="/"><span className="studioModeIcon">▤</span><span><strong>Analyse Single File</strong><small>Discover insights, quality and visuals</small></span></a>
       <a className="studioModeTab" href="/compare"><span className="studioModeIcon">↔</span><span><strong>Compare Datasets</strong><small>Find and explain what changed</small></span></a>
       <a className="studioModeTab" href="/forecast"><span className="studioModeIcon">↗</span><span><strong>Forecast</strong><small>Project a metric into future periods</small></span></a>
-      <a className="studioModeTab active" href="/scenario"><span className="studioModeIcon">◇</span><span><strong>Scenario</strong><small>Test assumptions before you decide</small></span><em>NEW</em></a>
+      <a className="studioModeTab active" href="/scenario"><span className="studioModeIcon">◇</span><span><strong>Scenario</strong><small>Test assumptions before you decide</small></span></a>
+      <a className="studioModeTab" href="/statistics"><span className="studioModeIcon">Σ</span><span><strong>Statistics</strong><small>Validate relationships and differences</small></span><em>NEW</em></a>
     </div></nav>
 
     <section className="scenarioHero"><div className="scenarioHeroInner"><div><span className="panelKicker">SCENARIO STUDIO · WHAT-IF ANALYSIS</span><h1>Model the decision before you make it.</h1><p>Turn business assumptions into transparent Base, Upside and Downside cases. Choose the measures that matter, define how they combine, then see the modelled impact instantly.</p><div className="scenarioTrustRow"><span>Deterministic calculations</span><span>User-controlled assumptions</span><span>No AI-generated numbers</span><span>Up to 20 MB</span></div></div><div className="scenarioHeroPreview" aria-hidden="true"><i className="down">−</i><i className="base">•</i><i className="up">+</i><strong>Downside · Base · Upside</strong><small>Change assumptions → recalculate outcome</small></div></div></section>
@@ -199,8 +201,18 @@ export default function ScenarioPage() {
       {error && <div className="errorBox scenarioError">{error}</div>}
 
       {result && <>
-        <div className="scenarioStepHeading scenarioResultHeading"><span>04</span><div><small>SCENARIO RESULT</small><h2>{result.configuration.calculation_label}</h2><p>Modelled from the selected dataset and your assumptions.</p></div><div className="scenarioResultActions"><button onClick={downloadScenarioCsv}>Download scenario CSV</button><button onClick={resetAll}>Analyse another file</button></div></div>
+        <div className="scenarioStepHeading scenarioResultHeading unifiedDashboardHeading"><span>04</span><div><small>SCENARIO DASHBOARD</small><h2>{result.configuration.calculation_label}</h2><p>Modelled from the selected dataset and your assumptions.</p></div><div className="scenarioResultActions"><button className="pdfReportButton" onClick={() => printToolReport(`Scenario Report - ${result.configuration.calculation_label}`)}>Download PDF Report</button><button onClick={downloadScenarioCsv}>Download scenario CSV</button><button onClick={resetAll}>Analyse another file</button></div></div>
         <div className="scenarioSummaryGrid">{result.scenarios.map((item) => <article className={`scenarioSummaryCard ${item.name.toLowerCase()}`} key={item.name}><span>{item.name.toUpperCase()}</span><strong>{outputValue(item.target, result.configuration.output_unit)}</strong><small className={item.delta > 0 ? "positive" : item.delta < 0 ? "negative" : ""}>{item.name === "Base" ? "Current calculated baseline" : `${formatPercent(item.delta_percent)} · ${formatSigned(item.delta, 2)} vs base`}</small></article>)}<article className="scenarioSummaryCard spread"><span>SCENARIO RANGE</span><strong>{outputValue(Math.abs(result.scenarios[1].target - result.scenarios[2].target), result.configuration.output_unit)}</strong><small>Upside-to-downside spread</small></article></div>
+
+        <section className="panel unifiedMeaningPanel scenarioMeaningPanel">
+          <div className="unifiedMeaningMark">◇</div>
+          <div className="unifiedMeaningCopy">
+            <span className="panelKicker">WHAT THIS MEANS</span>
+            <h3>{result.highlights[0]?.title ?? "Your assumptions create a measurable range of outcomes."}</h3>
+            <p>{result.highlights[0]?.detail ?? "Compare the Base, Upside and Downside cases to understand how sensitive the selected outcome is to your assumptions."}</p>
+            <div className="unifiedMeaningChips">{result.scenarios.map((item) => <span key={item.name}>{item.name}: {outputValue(item.target, result.configuration.output_unit)}</span>)}</div>
+          </div>
+        </section>
 
         <section className="panel scenarioOutcomePanel"><div className="scenarioPanelHeader"><div><span className="panelKicker">OUTCOME COMPARISON</span><h3>How far can the outcome move?</h3><p>The same formula is recalculated using your Base, Upside and Downside assumptions.</p></div></div><ScenarioBars result={result} /></section>
 
@@ -211,6 +223,42 @@ export default function ScenarioPage() {
         {result.segments.length > 0 && <section className="panel scenarioSegmentPanel"><div className="scenarioPanelHeader"><div><span className="panelKicker">SEGMENT VIEW</span><h3>Where the assumptions create the largest movement</h3><p>Top {result.configuration.dimension} groups ranked by absolute modelled change.</p></div></div><div className="scenarioTableWrap"><table className="scenarioTable"><thead><tr><th>{result.configuration.dimension}</th><th>Rows</th><th>Base</th><th>Upside</th><th>Δ Upside</th><th>Downside</th><th>Δ Downside</th></tr></thead><tbody>{result.segments.map((item) => <tr key={item.group}><td><strong>{item.group}</strong></td><td>{formatNumber(item.rows)}</td><td>{outputValue(item.base, result.configuration.output_unit)}</td><td>{outputValue(item.upside, result.configuration.output_unit)}</td><td className={item.upside_delta > 0 ? "positive" : item.upside_delta < 0 ? "negative" : ""}>{formatSigned(item.upside_delta, 2)}</td><td>{outputValue(item.downside, result.configuration.output_unit)}</td><td className={item.downside_delta > 0 ? "positive" : item.downside_delta < 0 ? "negative" : ""}>{formatSigned(item.downside_delta, 2)}</td></tr>)}</tbody></table></div></section>}
 
         <div className="scenarioMethodNote"><strong>Method</strong><span>{result.method}</span><strong>Important</strong><span>{result.caveat}</span></div>
+
+        <ToolPdfReport
+          tool="Scenario / What-If"
+          title={result.configuration.calculation_label}
+          subtitle="Base, Upside and Downside outcomes calculated directly from your selected measures and assumptions."
+          dataset={result.dataset.filename}
+          sheet={result.dataset.sheet_name}
+          metrics={[
+            ...result.scenarios.map((item) => ({ label: item.name, value: outputValue(item.target, result.configuration.output_unit), detail: item.name === "Base" ? "Current calculated baseline" : `${formatPercent(item.delta_percent)} vs base` })),
+            { label: "Scenario range", value: outputValue(Math.abs(result.scenarios[1].target - result.scenarios[2].target), result.configuration.output_unit), detail: "Upside-to-downside spread" },
+            { label: "Primary metric", value: result.configuration.metric_a, detail: `${result.configuration.aggregation_a} aggregation` },
+            { label: "Breakdown", value: result.configuration.dimension || "None", detail: result.configuration.dimension ? `${result.segments.length} groups modelled` : "Overall scenario only" },
+          ].slice(0, 6)}
+          methodology={result.method}
+          caveat={result.caveat}
+        >
+          <ToolPdfSection eyebrow="Executive summary" title="Decision range">
+            <div className="toolPdfFindingList">{result.highlights.slice(0, 6).map((item, index) => <article key={`${item.type}-${index}`}><span>{index + 1}</span><div><strong>{item.title}</strong><p>{item.detail}</p></div></article>)}</div>
+          </ToolPdfSection>
+          <ToolPdfSection eyebrow="Assumptions" title="What changed in each case">
+            <table className="toolPdfTable"><thead><tr><th>Driver</th><th>Upside</th><th>Downside</th></tr></thead><tbody>
+              <tr><td><strong>{result.configuration.metric_a}</strong></td><td>{formatPercent(result.assumptions.upside.metric_a_percent)}</td><td>{formatPercent(result.assumptions.downside.metric_a_percent)}</td></tr>
+              {result.configuration.metric_b && <tr><td><strong>{result.configuration.metric_b}</strong></td><td>{formatPercent(result.assumptions.upside.metric_b_percent)}</td><td>{formatPercent(result.assumptions.downside.metric_b_percent)}</td></tr>}
+            </tbody></table>
+          </ToolPdfSection>
+          <ToolPdfSection eyebrow="Scenario outcomes" title="Base, Upside and Downside">
+            <table className="toolPdfTable"><thead><tr><th>Scenario</th><th>Outcome</th><th>Change</th><th>Change %</th></tr></thead><tbody>
+              {result.scenarios.map((item) => <tr key={item.name}><td><strong>{item.name}</strong></td><td>{outputValue(item.target, result.configuration.output_unit)}</td><td>{formatSigned(item.delta, 2)}</td><td>{item.name === "Base" ? "—" : formatPercent(item.delta_percent)}</td></tr>)}
+            </tbody></table>
+          </ToolPdfSection>
+          {result.segments.length > 0 && <ToolPdfSection eyebrow="Segment view" title={`Largest modelled movements by ${result.configuration.dimension}`}>
+            <table className="toolPdfTable"><thead><tr><th>{result.configuration.dimension}</th><th>Base</th><th>Upside</th><th>Δ Upside</th><th>Downside</th><th>Δ Downside</th></tr></thead><tbody>
+              {result.segments.slice(0, 12).map((item) => <tr key={item.group}><td><strong>{item.group}</strong></td><td>{outputValue(item.base, result.configuration.output_unit)}</td><td>{outputValue(item.upside, result.configuration.output_unit)}</td><td>{formatSigned(item.upside_delta, 2)}</td><td>{outputValue(item.downside, result.configuration.output_unit)}</td><td>{formatSigned(item.downside_delta, 2)}</td></tr>)}
+            </tbody></table>
+          </ToolPdfSection>}
+        </ToolPdfReport>
       </>}
 
       <section className="supportLanding" id="support"><div><span className="panelKicker">INDEPENDENTLY BUILT</span><strong>Did Azhan Data Studio save you time?</strong><p>The studio stays free to use. If it helped you analyse, compare, forecast or model a decision, you can support continued development with a one-time contribution.</p></div>{SUPPORT_URL ? <a className="supportPrimaryButton" href={SUPPORT_URL} target="_blank" rel="noreferrer">☕ Support development</a> : <span className="supportPending">Stripe support link coming soon</span>}</section>

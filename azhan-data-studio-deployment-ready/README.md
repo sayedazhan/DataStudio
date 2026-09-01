@@ -39,6 +39,17 @@ Upload CSV/XLSX business data, choose one or two numeric measures, define a calc
 - scenario CSV export
 - deterministic calculations with no AI-generated scenario values
 
+
+### 5. Statistics
+Upload CSV/XLSX data and validate analytical patterns with transparent statistical evidence:
+- descriptive statistics and confidence intervals
+- Pearson and Spearman correlation
+- Welch two-sample t-test for two-group comparisons
+- one-way ANOVA for three or more groups
+- effect sizes (Cohen's d / eta squared)
+- chi-square test of independence and Cramer's V
+- plain-English interpretation with methodology and caveats
+
 ## Additional capabilities
 - CSV and XLSX support
 - multi-sheet Excel support
@@ -79,6 +90,7 @@ Frontend: http://localhost:3000
 Compare: http://localhost:3000/compare
 Forecast: http://localhost:3000/forecast
 Scenario: http://localhost:3000/scenario
+Statistics: http://localhost:3000/statistics
 
 You can also use `setup-windows.bat`, `run-backend.bat`, and `run-frontend.bat`.
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, useMemo, useRef, useState } from "react";
+import { ToolPdfReport, ToolPdfSection, printToolReport } from "../components/tool-report";
 
 type WorkbookSheet = {
   index: number;
@@ -419,7 +420,8 @@ export default function ForecastPage() {
           <a className="studioModeTab" href="/"><span className="studioModeIcon">▤</span><span><strong>Analyse Single File</strong><small>Discover insights, quality and visuals</small></span></a>
           <a className="studioModeTab" href="/compare"><span className="studioModeIcon">↔</span><span><strong>Compare Datasets</strong><small>Find and explain what changed</small></span></a>
           <a className="studioModeTab active" href="/forecast"><span className="studioModeIcon">↗</span><span><strong>Forecast</strong><small>Project a metric into future periods</small></span></a>
-          <a className="studioModeTab" href="/scenario"><span className="studioModeIcon">◇</span><span><strong>Scenario</strong><small>Test assumptions before you decide</small></span><em>NEW</em></a>
+          <a className="studioModeTab" href="/scenario"><span className="studioModeIcon">◇</span><span><strong>Scenario</strong><small>Test assumptions before you decide</small></span></a>
+          <a className="studioModeTab" href="/statistics"><span className="studioModeIcon">Σ</span><span><strong>Statistics</strong><small>Validate relationships and differences</small></span><em>NEW</em></a>
         </div>
       </nav>
 
@@ -471,7 +473,7 @@ export default function ForecastPage() {
 
         {result && (
           <>
-            <div className="forecastStepHeading forecastStepThree"><span>03</span><div><small>FORECAST RESULT</small><h2>{result.configuration.metric_field} outlook</h2><p>{result.configuration.aggregation === "sum" ? "Total" : "Average"} by {result.configuration.frequency} period · {result.configuration.horizon}-period horizon.</p></div><button className="forecastResetButton" onClick={resetAll}>Analyse another file</button></div>
+            <div className="forecastStepHeading forecastStepThree unifiedDashboardHeading"><span>03</span><div><small>FORECAST DASHBOARD</small><h2>{result.configuration.metric_field} outlook</h2><p>{result.configuration.aggregation === "sum" ? "Total" : "Average"} by {result.configuration.frequency} period · {result.configuration.horizon}-period horizon.</p></div><div className="dashboardActionGroup"><button className="pdfReportButton" onClick={() => printToolReport(`Forecast Report - ${result.configuration.metric_field}`)}>Download PDF Report</button><button className="forecastResetButton" onClick={resetAll}>Analyse another file</button></div></div>
 
             <div className="forecastSummaryGrid">
               <article><span>NEXT FORECAST</span><strong>{formatNumber(result.summary.next_forecast, 2)}</strong><small className={(result.summary.next_forecast_change_percent ?? 0) > 0 ? "positive" : (result.summary.next_forecast_change_percent ?? 0) < 0 ? "negative" : ""}>{formatPercent(result.summary.next_forecast_change_percent)} vs latest actual</small></article>
@@ -479,6 +481,16 @@ export default function ForecastPage() {
               <article><span>MODEL CONFIDENCE</span><strong>{result.diagnostics.confidence}</strong><small>{result.diagnostics.backtest_mape != null ? `${formatNumber(result.diagnostics.backtest_mape, 1)}% backtest MAPE` : "Limited percentage backtest"}</small></article>
               <article><span>HISTORY USED</span><strong>{formatNumber(result.summary.history_periods)}</strong><small>{formatDateLabel(result.summary.history_start, result.configuration.frequency)} → {formatDateLabel(result.summary.history_end, result.configuration.frequency)}</small></article>
             </div>
+
+            <section className="panel unifiedMeaningPanel forecastMeaningPanel">
+              <div className="unifiedMeaningMark">↗</div>
+              <div className="unifiedMeaningCopy">
+                <span className="panelKicker">WHAT THIS MEANS</span>
+                <h3>{result.diagnostics.trend_direction} outlook with {result.diagnostics.confidence.toLowerCase()} model confidence.</h3>
+                <p>The next {periodNoun(result.configuration.frequency)} is forecast at <strong>{formatNumber(result.summary.next_forecast, 2)}</strong>, which is <strong className={(result.summary.next_forecast_change_percent ?? 0) >= 0 ? "positive" : "negative"}>{formatPercent(result.summary.next_forecast_change_percent)}</strong> versus the latest actual value.</p>
+                <div className="unifiedMeaningChips"><span>{result.diagnostics.seasonality_detected ? "Seasonality detected" : "No strong seasonality"}</span><span>{result.diagnostics.backtest_mape != null ? `${formatNumber(result.diagnostics.backtest_mape, 1)}% backtest error` : "Limited backtest"}</span><span>{result.configuration.horizon} future periods</span></div>
+              </div>
+            </section>
 
             <section className="panel forecastChartPanel">
               <div className="forecastPanelHeader"><div><span className="panelKicker">FORECAST CURVE</span><h3>Historical pattern and projected range</h3><p>Solid blue is observed history; the dashed path is the forecast. The shaded range represents approximately 95% model uncertainty based on residual error.</p></div><button className="forecastCsvButton" onClick={downloadForecastCsv}>Download forecast CSV</button></div>
@@ -509,6 +521,44 @@ export default function ForecastPage() {
             </div>
 
             <div className="forecastMethodNote"><strong>Method</strong><span>{result.method}</span><strong>Important</strong><span>{result.caveat}</span></div>
+
+            <ToolPdfReport
+              tool="Forecast"
+              title={`${result.configuration.metric_field} outlook`}
+              subtitle={`${result.configuration.aggregation === "sum" ? "Total" : "Average"} ${result.configuration.metric_field} projected across ${result.configuration.horizon} future ${periodNoun(result.configuration.frequency)}${result.configuration.horizon === 1 ? "" : "s"}.`}
+              dataset={result.dataset.filename}
+              sheet={result.dataset.sheet_name}
+              metrics={[
+                { label: "Latest actual", value: formatNumber(result.summary.latest_actual, 2) },
+                { label: "Next forecast", value: formatNumber(result.summary.next_forecast, 2), detail: `${formatPercent(result.summary.next_forecast_change_percent)} vs latest` },
+                { label: "Horizon end", value: formatNumber(result.summary.horizon_end_forecast, 2), detail: `${formatPercent(result.summary.horizon_change_percent)} vs latest` },
+                { label: "Trend", value: result.diagnostics.trend_direction, detail: `${formatSigned(result.diagnostics.trend_per_period, 2)} per ${periodNoun(result.configuration.frequency)}` },
+                { label: "Model confidence", value: result.diagnostics.confidence, detail: result.diagnostics.backtest_mape != null ? `${formatNumber(result.diagnostics.backtest_mape, 1)}% MAPE` : "Limited backtest" },
+                { label: "Seasonality", value: result.diagnostics.seasonality_detected ? "Detected" : "Not strong", detail: `${formatNumber(result.diagnostics.seasonality_strength_percent, 1)}% strength` },
+              ]}
+              methodology={result.method}
+              caveat={result.caveat}
+            >
+              <ToolPdfSection eyebrow="Executive summary" title="Forecast interpretation">
+                <div className="toolPdfFindingList">{result.highlights.slice(0, 6).map((item, index) => <article key={`${item.type}-${index}`}><span>{index + 1}</span><div><strong>{item.title}</strong><p>{item.detail}</p></div></article>)}</div>
+              </ToolPdfSection>
+              <ToolPdfSection eyebrow="Forecast register" title="Future periods and uncertainty range">
+                <table className="toolPdfTable"><thead><tr><th>Period</th><th>Forecast</th><th>Lower range</th><th>Upper range</th></tr></thead><tbody>
+                  {result.forecast.map((point) => <tr key={point.date}><td><strong>{formatDateLabel(point.date, result.configuration.frequency)}</strong></td><td>{formatNumber(point.value, 2)}</td><td>{formatNumber(point.lower, 2)}</td><td>{formatNumber(point.upper, 2)}</td></tr>)}
+                </tbody></table>
+              </ToolPdfSection>
+              <ToolPdfSection eyebrow="Model diagnostics" title="How much confidence should you place in the forecast?">
+                <div className="toolPdfTwoCol"><div>
+                  <div className="toolPdfKeyValue"><span>Model</span><strong>{result.diagnostics.model}</strong></div>
+                  <div className="toolPdfKeyValue"><span>History used</span><strong>{result.summary.history_periods} periods</strong></div>
+                  <div className="toolPdfKeyValue"><span>Residual RMSE</span><strong>{formatNumber(result.diagnostics.residual_rmse, 2)}</strong></div>
+                </div><div>
+                  <div className="toolPdfKeyValue"><span>Backtest periods</span><strong>{result.diagnostics.backtest_periods}</strong></div>
+                  <div className="toolPdfKeyValue"><span>Backtest MAE</span><strong>{result.diagnostics.backtest_mae != null ? formatNumber(result.diagnostics.backtest_mae, 2) : "—"}</strong></div>
+                  <div className="toolPdfKeyValue"><span>Backtest MAPE</span><strong>{result.diagnostics.backtest_mape != null ? `${formatNumber(result.diagnostics.backtest_mape, 1)}%` : "—"}</strong></div>
+                </div></div>
+              </ToolPdfSection>
+            </ToolPdfReport>
           </>
         )}
 

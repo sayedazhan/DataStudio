@@ -17,18 +17,20 @@ from app.insights import discover_insights
 from app.compare import compare_datasets, prepare_comparison
 from app.forecast import forecast_series, prepare_forecast
 from app.scenario import prepare_scenario, run_scenario
+from app.statistics_engine import prepare_statistics, run_statistics
 
 APP_NAME = "Azhan Data Studio API"
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 COMPARE_MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB per file
 FORECAST_MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB per file
 SCENARIO_MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB per file
+STATISTICS_MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB per file
 SUPPORTED_EXTENSIONS = {".csv", ".xlsx"}
 
 app = FastAPI(
     title=APP_NAME,
-    description="Deterministic data-intelligence API for profiling, discovery, ranking, visualisation, dataset comparison, forecasting, scenario modelling, and report-ready analysis.",
-    version="1.3.0",
+    description="Deterministic data-intelligence API for profiling, discovery, ranking, visualisation, dataset comparison, forecasting, scenario modelling, statistical testing, and report-ready analysis.",
+    version="1.4.0",
 )
 
 DEFAULT_CORS_ORIGINS = [
@@ -843,6 +845,79 @@ async def run_dataset_scenario(
             downside_a=downside_a,
             downside_b=downside_b,
             dimension=dimension or None,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    result["dataset"] = {
+        "filename": file.filename,
+        "file_type": extension.removeprefix("."),
+        "file_size_bytes": len(content),
+        "rows": frame.height,
+        "columns": frame.width,
+        "sheet_name": sheet_name if extension == ".xlsx" else None,
+    }
+    return _serialise(result)
+
+def _validate_statistics_upload(file: UploadFile) -> str:
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="A statistics file with a filename is required.")
+    extension = Path(file.filename).suffix.lower()
+    if extension not in SUPPORTED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Statistics Studio supports CSV and XLSX files only.")
+    return extension
+
+
+@app.post("/api/datasets/statistics/prepare")
+async def prepare_dataset_statistics(
+    file: UploadFile = File(...),
+    sheet_name: str | None = Form(default=None),
+) -> dict[str, Any]:
+    extension = _validate_statistics_upload(file)
+    content = await _read_uploaded_bytes(file, STATISTICS_MAX_FILE_SIZE)
+    _validate_uploaded_format(content, extension)
+    frame = _read_dataset(content, extension, sheet_name if extension == ".xlsx" else None)
+    if frame.height == 0 or frame.width == 0:
+        raise HTTPException(status_code=400, detail="The statistics dataset must contain rows and columns.")
+
+    prepared = prepare_statistics(frame)
+    prepared["dataset"] = {
+        "filename": file.filename,
+        "file_type": extension.removeprefix("."),
+        "file_size_bytes": len(content),
+        "rows": frame.height,
+        "columns": frame.width,
+        "sheet_name": sheet_name if extension == ".xlsx" else None,
+    }
+    return _serialise(prepared)
+
+
+@app.post("/api/datasets/statistics")
+async def run_dataset_statistics(
+    file: UploadFile = File(...),
+    mode: str = Form(...),
+    numeric_field: str | None = Form(default=None),
+    numeric_field_b: str | None = Form(default=None),
+    group_field: str | None = Form(default=None),
+    category_field_a: str | None = Form(default=None),
+    category_field_b: str | None = Form(default=None),
+    confidence: float = Form(default=0.95),
+    sheet_name: str | None = Form(default=None),
+) -> dict[str, Any]:
+    extension = _validate_statistics_upload(file)
+    content = await _read_uploaded_bytes(file, STATISTICS_MAX_FILE_SIZE)
+    _validate_uploaded_format(content, extension)
+    frame = _read_dataset(content, extension, sheet_name if extension == ".xlsx" else None)
+    try:
+        result = run_statistics(
+            frame,
+            mode=mode,
+            numeric_field=numeric_field or None,
+            numeric_field_b=numeric_field_b or None,
+            group_field=group_field or None,
+            category_field_a=category_field_a or None,
+            category_field_b=category_field_b or None,
+            confidence=confidence,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

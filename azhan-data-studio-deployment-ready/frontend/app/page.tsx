@@ -1070,13 +1070,16 @@ export default function Home() {
     if (!result) return;
     setExportNotice("Print dialog opened. Choose ‘Save as PDF’ to create the PDF report.");
     const previousTitle = document.title;
+    const previousTab = activeTab;
+    if (activeTab !== "reports") setActiveTab("reports");
     document.title = `${safeFileStem(result.dataset.filename)} - Azhan Data Studio Report`;
     const restoreTitle = () => {
       document.title = previousTitle;
+      if (previousTab !== "reports") setActiveTab(previousTab);
       window.removeEventListener("afterprint", restoreTitle);
     };
     window.addEventListener("afterprint", restoreTitle);
-    window.setTimeout(() => window.print(), 80);
+    window.setTimeout(() => window.print(), activeTab === "reports" ? 80 : 220);
   }
 
   function downloadSelectedChart() {
@@ -1108,7 +1111,8 @@ export default function Home() {
           <a className="studioModeTab active" href="/" onClick={(event) => { event.preventDefault(); goHome(); }}><span className="studioModeIcon">▤</span><span><strong>Analyse Single File</strong><small>Discover insights, quality and visuals</small></span></a>
           <a className="studioModeTab" href="/compare"><span className="studioModeIcon">↔</span><span><strong>Compare Datasets</strong><small>Find and explain what changed</small></span></a>
           <a className="studioModeTab" href="/forecast"><span className="studioModeIcon">↗</span><span><strong>Forecast</strong><small>Project a metric into future periods</small></span></a>
-          <a className="studioModeTab" href="/scenario"><span className="studioModeIcon">◇</span><span><strong>Scenario</strong><small>Test assumptions before you decide</small></span><em>NEW</em></a>
+          <a className="studioModeTab" href="/scenario"><span className="studioModeIcon">◇</span><span><strong>Scenario</strong><small>Test assumptions before you decide</small></span></a>
+          <a className="studioModeTab" href="/statistics"><span className="studioModeIcon">Σ</span><span><strong>Statistics</strong><small>Validate relationships and differences</small></span><em>NEW</em></a>
         </div>
       </nav>
 
@@ -1283,11 +1287,14 @@ export default function Home() {
           <section className="workspaceShell">
             {activeTab === "overview" && (
               <div className="tabPage">
-                <div className="pageHeading">
-                  <div><span className="panelKicker">ANALYST BRIEFING</span><h2>Overview</h2></div>
-                  <div className="headingPills">
-                    <span>{result.quality.completeness_percent}% complete</span>
-                    <span>{result.understanding.average_semantic_confidence}% semantic confidence</span>
+                <div className="pageHeading unifiedDashboardHeading">
+                  <div><span className="panelKicker">ANALYST BRIEFING · DASHBOARD VIEW</span><h2>Overview</h2><p>Your key measures, strongest finding and data health in one decision-ready view.</p></div>
+                  <div className="dashboardActionGroup analyseDashboardActions">
+                    <div className="headingPills">
+                      <span>{result.quality.completeness_percent}% complete</span>
+                      <span>{result.understanding.average_semantic_confidence}% semantic confidence</span>
+                    </div>
+                    <button className="pdfReportButton" onClick={printReport}>Download PDF Report</button>
                   </div>
                 </div>
 
@@ -1297,6 +1304,17 @@ export default function Home() {
                   <Metric label="Insights" value={formatNumber(result.discovery.total_findings)} />
                   <Metric label="Top score" value={featuredFindings[0] ? `${formatDecimal(featuredFindings[0].insight_score, 0)}/100` : "—"} />
                 </div>
+
+                <section className="panel unifiedMeaningPanel analyseMeaningPanel">
+                  <div className="unifiedMeaningMark">◎</div>
+                  <div className="unifiedMeaningCopy">
+                    <span className="panelKicker">WHAT THIS MEANS</span>
+                    <h3>{featuredFindings[0]?.title ?? "Your dataset is ready to explore."}</h3>
+                    <p>{featuredFindings[0]?.summary ?? "Data Studio has profiled the dataset and prepared the available insights, visuals and quality evidence."}</p>
+                    <div className="unifiedMeaningChips"><span>{result.discovery.total_findings} insights found</span><span>{result.quality.completeness_percent}% complete</span><span>{result.understanding.average_semantic_confidence}% field confidence</span></div>
+                  </div>
+                  {featuredFindings[0] && <button className="unifiedMeaningAction" onClick={() => openInsight(featuredFindings[0])}>Open top insight →</button>}
+                </section>
 
                 <div className="overviewGrid">
                   <section className="panel overviewInsights">
@@ -1479,11 +1497,11 @@ export default function Home() {
                   <div className="reportActionIntro">
                     <span className="panelKicker">EXPORT CENTRE</span>
                     <h3>Take the analysis with you</h3>
-                    <p>The PDF option uses your browser print dialog. Choose <strong>Save as PDF</strong> for a portable report.</p>
+                    <p>Download a branded PDF-ready report using your browser print dialog. Choose <strong>Save as PDF</strong> when prompted.</p>
                     <div className="reportActionBrand">Reports carry the Azhan Data Studio identity and link back to the Azhan Hassan portfolio.</div>
                   </div>
                   <div className="reportActionButtons">
-                    <button className="primaryButton compactPrimary" onClick={printReport}>Print / Save PDF</button>
+                    <button className="primaryButton compactPrimary" onClick={printReport}>Download PDF Report</button>
                     <button className="secondaryButton" onClick={exportInsightsCsv}>Download insights CSV</button>
                     {SUPPORT_URL ? <a className="supportSecondaryButton" href={SUPPORT_URL} target="_blank" rel="noreferrer">☕ Support the project</a> : <a className="supportSecondaryButton" href="#support">☕ Support the project</a>}
                   </div>
