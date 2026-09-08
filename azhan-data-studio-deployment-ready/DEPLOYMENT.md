@@ -4,7 +4,7 @@ Current production architecture:
 - Frontend: Netlify (Next.js)
 - Backend: Railway (FastAPI + Polars)
 
-All product modes use the same frontend and the same Railway backend. No second backend service is required for Compare, Explain Change, Forecast, or Scenario.
+All product modes use the same frontend and the same Railway backend. No second backend service is required for Monthly Intelligence, Compare, Explain Change, Forecast, Scenario, or Statistics.
 
 ## Railway backend
 
@@ -23,6 +23,8 @@ The included `.python-version` pins Python 3.13.
 After deployment verify:
 - `/health`
 - `/docs`
+- `/api/datasets/monthly/prepare`
+- `/api/datasets/monthly/analyse`
 - `/api/datasets/compare/prepare`
 - `/api/datasets/compare`
 - `/api/datasets/forecast/prepare`
@@ -40,9 +42,11 @@ The included `netlify.toml` builds the Next.js app from `frontend`.
 
 Production pages:
 - `/` Analyse Single File
+- `/monthly` Monthly Intelligence v3.2
 - `/compare` Compare Datasets + Explain Change v2
 - `/forecast` Forecast Studio v1
 - `/scenario` Scenario Studio v1
+- `/statistics` Statistics Studio v1
 
 ## Production regression test
 
@@ -50,11 +54,13 @@ Production pages:
 2. Verify multi-sheet workbook selection.
 3. Verify Overview, Insights, Explore, Reports, Data Quality, and Fields.
 4. Verify Print / Save PDF and Download Insights CSV.
-5. Compare `sample-data/compare-baseline.csv` vs `sample-data/compare-current.csv` using `OrderID`.
-6. Verify Explain Change v2 renders ranked driver evidence.
-7. Forecast `sample-data/forecast-monthly-sample.csv` using `Month` + `Revenue` with a 6-period horizon.
-8. Run `sample-data/scenario-business-sample.csv` with Revenue − Cost, Upside Revenue +10% / Cost +5%, Downside Revenue -10% / Cost 0%, and Region breakdown.
-9. Verify Stripe Support opens the configured Payment Link if `NEXT_PUBLIC_SUPPORT_URL` is set.
+5. Add the three `sample-data/monthly-sales-2026-0*.csv` files in Monthly Intelligence and verify period detection, Revenue movement, Region drivers, QLD as a new value, KPI alert rules, historical benchmark cards, per-record comparison, and Data Quality Centre.
+6. In Monthly Intelligence choose **Generate Executive PDF**, confirm the branded report contains the executive summary, period comparison, trend, alerts, drivers, data quality and source register, then use the browser **Save as PDF** option.
+7. Compare `sample-data/compare-baseline.csv` vs `sample-data/compare-current.csv` using `OrderID`.
+8. Verify Explain Change v2 renders ranked driver evidence.
+9. Forecast `sample-data/forecast-monthly-sample.csv` using `Month` + `Revenue` with a 6-period horizon.
+10. Run `sample-data/scenario-business-sample.csv` with Revenue − Cost, Upside Revenue +10% / Cost +5%, Downside Revenue -10% / Cost 0%, and Region breakdown.
+11. Verify Stripe Support opens the configured Payment Link if `NEXT_PUBLIC_SUPPORT_URL` is set.
 
 ## Data handling
 Uploaded datasets are processed by the FastAPI backend for the request. The application code does not persist uploaded files after request processing.

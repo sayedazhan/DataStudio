@@ -14,6 +14,7 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.insights import discover_insights
+from app.monthly import SourceFrame, analyse_monthly, prepare_monthly
 from app.compare import compare_datasets, prepare_comparison
 from app.forecast import forecast_series, prepare_forecast
 from app.scenario import prepare_scenario, run_scenario
@@ -25,12 +26,15 @@ COMPARE_MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB per file
 FORECAST_MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB per file
 SCENARIO_MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB per file
 STATISTICS_MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB per file
+MONTHLY_MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB per monthly file
+MONTHLY_MAX_FILES = 24
+MONTHLY_MAX_TOTAL_SIZE = 100 * 1024 * 1024  # 100 MB per request
 SUPPORTED_EXTENSIONS = {".csv", ".xlsx"}
 
 app = FastAPI(
     title=APP_NAME,
     description="Deterministic data-intelligence API for profiling, discovery, ranking, visualisation, dataset comparison, forecasting, scenario modelling, statistical testing, and report-ready analysis.",
-    version="1.4.0",
+    version="1.6.0",
 )
 
 DEFAULT_CORS_ORIGINS = [
@@ -710,6 +714,89 @@ async def compare_dataset_versions(
         "sheet_name": sheet_name_b if extension_b == ".xlsx" else None,
     }
     return _serialise(comparison)
+
+
+def _validate_monthly_upload(file: UploadFile) -> str:
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="Every monthly file must include a filename.")
+    extension = Path(file.filename).suffix.lower()
+    if extension not in SUPPORTED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail=f"{file.filename}: only CSV and XLSX files are supported.")
+    return extension
+
+
+async def _read_monthly_sources(files: list[UploadFile]) -> list[SourceFrame]:
+    if len(files) < 2:
+        raise HTTPException(status_code=400, detail="Monthly Intelligence needs at least two files or reporting periods.")
+    if len(files) > MONTHLY_MAX_FILES:
+        raise HTTPException(status_code=400, detail=f"Monthly Intelligence currently supports up to {MONTHLY_MAX_FILES} files at once.")
+
+    sources: list[SourceFrame] = []
+    total_size = 0
+    for file in files:
+        extension = _validate_monthly_upload(file)
+        content = await _read_uploaded_bytes(file, MONTHLY_MAX_FILE_SIZE)
+        total_size += len(content)
+        if total_size > MONTHLY_MAX_TOTAL_SIZE:
+            raise HTTPException(status_code=413, detail="The monthly file library exceeds the current 100 MB request limit.")
+        _validate_uploaded_format(content, extension)
+
+        sheet_name: str | None = None
+        if extension == ".xlsx":
+            workbook = _workbook_sheet_metadata(content)
+            sheet_name = workbook.get("recommended_sheet")
+        frame = _read_dataset(content, extension, sheet_name)
+        if frame.height == 0 or frame.width == 0:
+            raise HTTPException(status_code=400, detail=f"{file.filename}: the selected dataset contains no usable rows or columns.")
+        sources.append(SourceFrame(filename=file.filename or "dataset", frame=frame, sheet_name=sheet_name))
+    return sources
+
+
+@app.post("/api/datasets/monthly/prepare")
+async def prepare_monthly_intelligence(files: list[UploadFile] = File(...)) -> dict[str, Any]:
+    sources = await _read_monthly_sources(files)
+    try:
+        result = prepare_monthly(sources)
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Unable to prepare monthly intelligence: {exc}") from exc
+    return _serialise(result)
+
+
+@app.post("/api/datasets/monthly/analyse")
+async def run_monthly_intelligence(
+    files: list[UploadFile] = File(...),
+    metric: str = Form(...),
+    aggregation: str = Form(default="sum"),
+    date_field: str | None = Form(default=None),
+    dimension: str | None = Form(default=None),
+    previous_period: str | None = Form(default=None),
+    current_period: str | None = Form(default=None),
+    alert_threshold_percent: float = Form(default=10.0),
+    alert_direction: str = Form(default="any"),
+    target_value: float | None = Form(default=None),
+    target_condition: str = Form(default="minimum"),
+) -> dict[str, Any]:
+    sources = await _read_monthly_sources(files)
+    try:
+        result = analyse_monthly(
+            sources,
+            metric=metric,
+            aggregation=aggregation,
+            date_field=date_field or None,
+            dimension=dimension or None,
+            previous_period=previous_period or None,
+            current_period=current_period or None,
+            alert_threshold_percent=alert_threshold_percent,
+            alert_direction=alert_direction,
+            target_value=target_value,
+            target_condition=target_condition,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Unable to analyse monthly files: {exc}") from exc
+    return _serialise(result)
+
 
 def _validate_forecast_upload(file: UploadFile) -> str:
     if not file.filename:

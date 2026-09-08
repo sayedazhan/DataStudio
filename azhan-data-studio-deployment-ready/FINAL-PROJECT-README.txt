@@ -13,6 +13,7 @@ Included product capabilities:
 - Visual discovery
 - Data quality and field profiling
 - Report / Print to PDF and Insights CSV export
+- Monthly Intelligence v3.2 - browser-persistent monthly library, configurable KPI alerts, stronger period comparison, historical benchmarking, automatic insights, Data Quality Centre, Executive PDF Reporting
 - Compare Datasets
 - Explain Change v2
 - Forecast Studio v1
@@ -28,6 +29,7 @@ Project structure:
 Local URLs:
 - Frontend: http://localhost:3000
 - Backend docs: http://127.0.0.1:8000/docs
+- Monthly Intelligence: http://localhost:3000/monthly
 - Compare: http://localhost:3000/compare
 - Forecast: http://localhost:3000/forecast
 - Scenario: http://localhost:3000/scenario
@@ -51,8 +53,8 @@ Unified Dashboard Experience v2
 - Forecast dashboard + What this means
 - Scenario dashboard + What this means
 - Statistics dashboard with plain-English evidence
-- Shared KPI, panel, spacing and typography system across all five tools
+- Shared KPI, panel, spacing and typography system across all six tools
 
-PDF REPORTS V2.2
+PDF REPORTS V3.2
 ----------------
-Branded PDF-ready reporting is now available across Analyse, Compare, Forecast, Scenario and Statistics. Reports are rendered with the browser print engine; choose Save as PDF when prompted.
+Branded PDF-ready reporting is available across Analyse, Monthly Intelligence, Compare, Forecast, Scenario and Statistics. Monthly Intelligence now generates a dedicated management report containing executive summary, KPI comparison, historical trend, alerts, movement drivers, data quality and a source register. Reports are rendered with the browser print engine; choose Save as PDF when prompted.

@@ -19,10 +19,19 @@ npm run dev
 Frontend:
 http://localhost:3000
 
+Monthly Intelligence v3.1:
+http://localhost:3000/monthly
+
 Compare:
 http://localhost:3000/compare
 
 Forecast:
 http://localhost:3000/forecast
+
+Scenario:
+http://localhost:3000/scenario
+
+Statistics:
+http://localhost:3000/statistics
 
 Note: On corporate/OneDrive folders Python venv creation can fail. The commands above intentionally use the installed Python 3.13 + user packages and do not require a local .venv.

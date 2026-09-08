@@ -1,7 +1,0 @@
-OrderID,Region,Product,Revenue,Cost,Status
-1001,VIC,Alpha,1200,780,Open
-1002,NSW,Beta,1650,1100,Open
-1003,QLD,Alpha,980,640,Closed
-1004,VIC,Gamma,2100,1450,Open
-1005,NSW,Alpha,1320,870,Open
-1006,SA,Beta,760,510,Closed

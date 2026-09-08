@@ -11,7 +11,10 @@ Portfolio: https://syedazhan.netlify.app/
 ### 1. Analyse Single File
 Upload CSV/XLSX data to profile the dataset, infer field roles, discover and rank statistical findings, explore visualisations, inspect data quality, and generate report-ready output.
 
-### 2. Compare Datasets
+### 2. Monthly Intelligence (v3.2)
+Build a persistent browser-side library of monthly CSV/XLSX files, automatically detect reporting periods, validate schema consistency, track KPI movement, configure in-app KPI alert rules, compare per-record performance, benchmark the current period against history, surface deterministic insights, inspect the Data Quality Centre, and generate a management-ready Executive PDF report.
+
+### 3. Compare Datasets
 Upload a Previous/Baseline dataset and a Current/New dataset, select a comparison key, and identify:
 - added, removed, modified, and unchanged records
 - schema changes
@@ -19,7 +22,7 @@ Upload a Previous/Baseline dataset and a Current/New dataset, select a compariso
 - record-level before/after evidence
 - Explain Change v2 ranked drivers and offsets
 
-### 3. Forecast
+### 4. Forecast
 Upload a time-based CSV/XLSX dataset, choose a date field and numeric metric, select aggregation/time grain/horizon, and generate:
 - historical trend
 - seasonal diagnostics
@@ -29,7 +32,7 @@ Upload a time-based CSV/XLSX dataset, choose a date field and numeric metric, se
 - forecast CSV export
 
 
-### 4. Scenario / What-If
+### 5. Scenario / What-If
 Upload CSV/XLSX business data, choose one or two numeric measures, define a calculation, and model user-controlled Base, Upside, and Downside cases. Scenario v1 includes:
 - single-metric, difference, ratio, product, and margin-percentage formulas
 - independent aggregation choice for Metric A and Metric B
@@ -40,7 +43,7 @@ Upload CSV/XLSX business data, choose one or two numeric measures, define a calc
 - deterministic calculations with no AI-generated scenario values
 
 
-### 5. Statistics
+### 6. Statistics
 Upload CSV/XLSX data and validate analytical patterns with transparent statistical evidence:
 - descriptive statistics and confidence intervals
 - Pearson and Spearman correlation
@@ -53,8 +56,11 @@ Upload CSV/XLSX data and validate analytical patterns with transparent statistic
 ## Additional capabilities
 - CSV and XLSX support
 - multi-sheet Excel support
+- browser-persistent monthly file library with exact duplicate-file protection
+- reporting-period detection, stronger period comparison, historical benchmarking, and configurable in-app KPI alerts
+- advanced Data Quality Centre checks
 - deterministic analytics (no LLM used for calculations)
-- report Print / Save PDF
+- branded Print / Save PDF reports across all six tools, including the Monthly Executive report
 - ranked insights CSV export
 - optional Stripe support link via `NEXT_PUBLIC_SUPPORT_URL`
 
@@ -87,6 +93,7 @@ npm run dev
 Before starting the frontend, create `.env.local` from `.env.local.example`.
 
 Frontend: http://localhost:3000
+Monthly Intelligence: http://localhost:3000/monthly
 Compare: http://localhost:3000/compare
 Forecast: http://localhost:3000/forecast
 Scenario: http://localhost:3000/scenario
