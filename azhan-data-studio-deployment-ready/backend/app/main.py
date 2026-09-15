@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import polars as pl
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Response
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.insights import discover_insights
@@ -19,6 +19,7 @@ from app.compare import compare_datasets, prepare_comparison
 from app.forecast import forecast_series, prepare_forecast
 from app.scenario import prepare_scenario, run_scenario
 from app.statistics_engine import prepare_statistics, run_statistics
+from app.clean_data import analyse_cleaning, clean_frame
 
 APP_NAME = "Azhan Data Studio API"
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
@@ -630,6 +631,82 @@ async def inspect_dataset(
     }
     return _serialise(result)
 
+
+
+@app.post("/api/datasets/clean/prepare")
+async def prepare_clean_dataset(
+    file: UploadFile = File(...),
+    sheet_name: str | None = Form(None),
+) -> dict[str, Any]:
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No filename supplied.")
+    extension = Path(file.filename).suffix.lower()
+    if extension not in SUPPORTED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Clean My Data currently supports CSV and XLSX files.")
+    content = await _read_uploaded_bytes(file, MAX_FILE_SIZE)
+    _validate_uploaded_format(content, extension)
+    frame = _read_dataset(content, extension, sheet_name if extension == ".xlsx" else None)
+    analysis = analyse_cleaning(frame)
+    return _serialise({
+        "filename": file.filename,
+        "file_type": extension.lstrip("."),
+        "sheet_name": sheet_name if extension == ".xlsx" else None,
+        "analysis": analysis,
+        "preview": frame.head(8).to_dicts(),
+    })
+
+
+@app.post("/api/datasets/clean")
+async def clean_dataset(
+    file: UploadFile = File(...),
+    sheet_name: str | None = Form(None),
+    remove_duplicates: bool = Form(True),
+    remove_blank_rows: bool = Form(True),
+    trim_whitespace: bool = Form(True),
+    clean_headers: bool = Form(True),
+    standardise_dates: bool = Form(True),
+    standardise_text_case: bool = Form(False),
+    output_format: str = Form("xlsx"),
+) -> Response:
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No filename supplied.")
+    extension = Path(file.filename).suffix.lower()
+    if extension not in SUPPORTED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Clean My Data currently supports CSV and XLSX files.")
+    content = await _read_uploaded_bytes(file, MAX_FILE_SIZE)
+    _validate_uploaded_format(content, extension)
+    frame = _read_dataset(content, extension, sheet_name if extension == ".xlsx" else None)
+    cleaned, report = clean_frame(
+        frame,
+        remove_duplicates=remove_duplicates,
+        remove_blank_rows=remove_blank_rows,
+        trim_whitespace=trim_whitespace,
+        clean_headers=clean_headers,
+        standardise_dates=standardise_dates,
+        standardise_text_case=standardise_text_case,
+    )
+    stem = Path(file.filename).stem
+    if output_format.lower() == "csv":
+        body = cleaned.write_csv().encode("utf-8")
+        filename = f"{stem}_cleaned.csv"
+        media_type = "text/csv; charset=utf-8"
+    else:
+        buffer = BytesIO()
+        cleaned.write_excel(workbook=buffer, worksheet="Cleaned Data", autofit=True)
+        body = buffer.getvalue()
+        filename = f"{stem}_cleaned.xlsx"
+        media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    import json
+    return Response(
+        content=body,
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Cleaning-Summary": json.dumps(report["changes"], separators=(",", ":")),
+            "X-Quality-Before": str(report["before"]["quality_score"]),
+            "X-Quality-After": str(report["after"]["quality_score"]),
+        },
+    )
 
 def _validate_compare_upload(file: UploadFile) -> str:
     if not file.filename:

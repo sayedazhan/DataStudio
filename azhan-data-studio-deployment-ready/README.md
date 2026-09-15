@@ -103,3 +103,10 @@ You can also use `setup-windows.bat`, `run-backend.bat`, and `run-frontend.bat`.
 
 ## Production deployment
 See `DEPLOYMENT.md`.
+
+## Clean My Data (v1)
+A new `/clean` utility scans CSV/XLSX datasets for common data-quality issues and can export a cleaned copy. It supports exact duplicate removal, blank-row removal, whitespace trimming, empty-string normalization, snake_case header cleanup, conservative date normalization, optional case-only text standardisation, and CSV/XLSX output.
+
+### Clean My Data v1.0.2
+- Fixed XLSX workbook metadata parsing for `/api/datasets/workbook` response shape (`{ workbook: ... }`).
+- Added defensive sheet-array validation to avoid runtime crashes if workbook metadata is malformed.
