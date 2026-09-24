@@ -147,3 +147,8 @@ See `LAUNCH-READINESS-SEO-V3.6.md` for the production checklist.
 ## Domain-ready release (v3.6.1)
 
 v3.6.1 sets `https://azhandatastudio.com` as the production SEO/canonical domain and prepares the existing GitHub/Netlify deployment for custom-domain cutover. See `DOMAIN-READY-V3.6.1.md`.
+
+
+## GA4 launch analytics (v3.7)
+
+The public site now includes Google Analytics 4 using measurement ID `G-H5VZKVXKMY`, with Enhanced Measurement plus product events for analysis starts, sample-data usage, Data Quality opens, support checkout clicks, feature CTAs and main tool navigation. No uploaded dataset contents or file names are intentionally included in these events. See `GA4-ANALYTICS-V3.7.md`.

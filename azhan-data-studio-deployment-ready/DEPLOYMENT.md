@@ -36,6 +36,7 @@ Environment variables:
 - `NEXT_PUBLIC_SITE_URL` = `https://azhandatastudio.com` (canonical public frontend URL)
 - `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` = Search Console verification token when issued
 - `NEXT_PUBLIC_DATA_STUDIO_SUPPORT_URL` = `https://buy.stripe.com/3cIcN514E65u8MnaKAdjO00`
+- `NEXT_PUBLIC_GA_MEASUREMENT_ID` = `G-H5VZKVXKMY`
 
 The confirmed Data Studio checkout is also the safe fallback in `frontend/app/lib/config.ts`.
 
@@ -87,7 +88,8 @@ The backend CORS example includes the apex, `www`, and legacy Netlify hostname s
 12. View source/DevTools and verify canonical, description and Open Graph metadata on the homepage and a feature page.
 13. Check the social preview image at `/opengraph-image`.
 14. After Search Console verification, submit `/sitemap.xml` and inspect the homepage plus four feature pages.
-15. Run Lighthouse/PageSpeed and address material performance, SEO or accessibility warnings before promotion.
+15. Verify GA4 installation and Realtime events for `analysis_start`, `sample_data_click`, `data_quality_open`, `support_click` and `feature_cta_click`.
+16. Run Lighthouse/PageSpeed and address material performance, SEO or accessibility warnings before promotion.
 
 ## Data handling
 
