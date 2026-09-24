@@ -9,7 +9,11 @@ Portfolio: https://syedazhan.netlify.app/
 ## Current product modes
 
 ### 1. Analyse Single File
-Upload CSV/XLSX data to profile the dataset, infer field roles, discover and rank statistical findings, explore visualisations, inspect data quality, and generate report-ready output.
+Upload CSV/XLSX data to profile the dataset, infer field roles, inspect data quality, automatically generate an interactive dashboard, discover and rank statistical findings, explore visualisations, and generate report-ready output.
+
+**v4.0 Auto Dashboard Builder:** The Analyse workspace now includes a Dashboard tab that automatically selects KPIs, time trends and category breakdowns from detected field roles. Users can filter the dashboard, customise the fields, inspect underlying filtered records, export filtered data and print/save the dashboard as PDF. See `AUTO-DASHBOARD-V4.0.md`.
+
+**v4.1 Branded Reporting & Dashboard Export:** Dashboard export now uses a dedicated A4 report layout and the Reports workspace offers Executive Summary and Full Analysis PDF variants with Azhan Data Studio branding, dashboard snapshots, findings, data quality and report-safe print styling. See `BRANDED-REPORTING-V4.1.md`.
 
 ### 2. Monthly Intelligence (v3.2)
 Build a persistent browser-side library of monthly CSV/XLSX files, automatically detect reporting periods, validate schema consistency, track KPI movement, configure in-app KPI alert rules, compare per-record performance, benchmark the current period against history, surface deterministic insights, inspect the Data Quality Centre, and generate a management-ready Executive PDF report.
@@ -59,6 +63,7 @@ Upload CSV/XLSX data and validate analytical patterns with transparent statistic
 - browser-persistent monthly file library with exact duplicate-file protection
 - reporting-period detection, stronger period comparison, historical benchmarking, and configurable in-app KPI alerts
 - advanced Data Quality Centre checks
+- automatic interactive dashboard generation with KPI, trend, breakdown, filtering and customisation
 - deterministic analytics (no LLM used for calculations)
 - branded Print / Save PDF reports across all six tools, including the Monthly Executive report
 - ranked insights CSV export

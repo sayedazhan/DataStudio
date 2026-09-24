@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import re
+import json
 from collections import Counter, defaultdict, deque
 from datetime import date, datetime
 from time import monotonic
@@ -22,6 +23,7 @@ from app.forecast import forecast_series, prepare_forecast
 from app.scenario import prepare_scenario, run_scenario
 from app.statistics_engine import prepare_statistics, run_statistics
 from app.clean_data import analyse_cleaning, clean_frame
+from app.dashboard import build_dashboard
 
 APP_NAME = "Azhan Data Studio API"
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
@@ -40,7 +42,7 @@ _rate_limit_buckets: dict[str, deque[float]] = defaultdict(deque)
 app = FastAPI(
     title=APP_NAME,
     description="Deterministic data-intelligence API for profiling, discovery, ranking, visualisation, dataset comparison, forecasting, scenario modelling, statistical testing, and report-ready analysis.",
-    version="1.7.0",
+    version="2.0.0",
 )
 
 DEFAULT_CORS_ORIGINS = [
@@ -308,6 +310,53 @@ def _infer_role(
         return "measure", 96, "The field is numeric and is suitable for aggregation/statistical analysis."
 
     return "other", 60, "No strong semantic pattern was detected."
+
+
+def _analyse_schema(dataframe: pl.DataFrame) -> tuple[list[dict[str, Any]], int, Counter[str]]:
+    schema: list[dict[str, Any]] = []
+    total_missing = 0
+    role_counts: Counter[str] = Counter()
+
+    for column_name, dtype in zip(dataframe.columns, dataframe.dtypes):
+        series = dataframe[column_name]
+        missing_count = series.null_count()
+        non_null = series.drop_nulls()
+        unique_non_null = non_null.n_unique() if len(non_null) else 0
+        total_missing += missing_count
+
+        role, confidence, reason = _infer_role(
+            column_name,
+            series,
+            dtype,
+            unique_non_null,
+            dataframe.height,
+        )
+        role_counts[role] += 1
+        profile, key_signal = _profile_column(
+            series,
+            role,
+            dataframe.height,
+            missing_count,
+            unique_non_null,
+        )
+
+        schema.append(
+            {
+                "name": column_name,
+                "data_type": _classify_type(dtype),
+                "semantic_role": role,
+                "semantic_confidence": confidence,
+                "semantic_reason": reason,
+                "polars_type": str(dtype),
+                "missing_count": missing_count,
+                "missing_percent": round((missing_count / dataframe.height) * 100, 2),
+                "unique_count": unique_non_null,
+                "key_signal": key_signal,
+                "profile": profile,
+            }
+        )
+
+    return schema, total_missing, role_counts
 
 
 def _top_values(series: pl.Series, row_count: int, limit: int = 5) -> list[dict[str, Any]]:
@@ -590,48 +639,7 @@ async def inspect_dataset(
     if dataframe.width == 0:
         raise HTTPException(status_code=400, detail="Dataset contains no columns.")
 
-    schema: list[dict[str, Any]] = []
-    total_missing = 0
-    role_counts: Counter[str] = Counter()
-
-    for column_name, dtype in zip(dataframe.columns, dataframe.dtypes):
-        series = dataframe[column_name]
-        missing_count = series.null_count()
-        non_null = series.drop_nulls()
-        unique_non_null = non_null.n_unique() if len(non_null) else 0
-        total_missing += missing_count
-
-        role, confidence, reason = _infer_role(
-            column_name,
-            series,
-            dtype,
-            unique_non_null,
-            dataframe.height,
-        )
-        role_counts[role] += 1
-        profile, key_signal = _profile_column(
-            series,
-            role,
-            dataframe.height,
-            missing_count,
-            unique_non_null,
-        )
-
-        schema.append(
-            {
-                "name": column_name,
-                "data_type": _classify_type(dtype),
-                "semantic_role": role,
-                "semantic_confidence": confidence,
-                "semantic_reason": reason,
-                "polars_type": str(dtype),
-                "missing_count": missing_count,
-                "missing_percent": round((missing_count / dataframe.height) * 100, 2),
-                "unique_count": unique_non_null,
-                "key_signal": key_signal,
-                "profile": profile,
-            }
-        )
+    schema, total_missing, role_counts = _analyse_schema(dataframe)
 
     try:
         duplicate_rows = dataframe.height - dataframe.unique().height
@@ -643,6 +651,11 @@ async def inspect_dataset(
     preview = dataframe.head(10).to_dicts()
     discovery = discover_insights(dataframe, schema, duplicate_rows)
     quality_diagnostics = analyse_cleaning(dataframe)
+    dashboard = build_dashboard(
+        dataframe,
+        schema,
+        quality_score=quality_diagnostics.get("quality_score"),
+    )
 
     result = {
         "dataset": {
@@ -680,11 +693,55 @@ async def inspect_dataset(
             ),
         },
         "discovery": discovery,
+        "dashboard": dashboard,
         "schema": schema,
         "preview": preview,
     }
     return _serialise(result)
 
+
+
+@app.post("/api/datasets/dashboard")
+async def refresh_dashboard(
+    file: UploadFile = File(...),
+    sheet_name: str | None = Form(default=None),
+    config_json: str | None = Form(default=None),
+    filters_json: str | None = Form(default=None),
+) -> dict[str, Any]:
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No filename supplied.")
+
+    extension = Path(file.filename).suffix.lower()
+    if extension not in SUPPORTED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="Dashboard generation supports CSV and XLSX files.")
+
+    content = await _read_uploaded_bytes(file)
+    _validate_uploaded_format(content, extension)
+    dataframe = _read_dataset(content, extension, sheet_name if extension == ".xlsx" else None)
+    if dataframe.height == 0 or dataframe.width == 0:
+        raise HTTPException(status_code=400, detail="Dataset contains no analysable rows or columns.")
+
+    try:
+        requested_config = json.loads(config_json) if config_json else None
+        filters = json.loads(filters_json) if filters_json else None
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=400, detail="Dashboard configuration is invalid JSON.") from exc
+
+    if requested_config is not None and not isinstance(requested_config, dict):
+        raise HTTPException(status_code=400, detail="Dashboard configuration must be an object.")
+    if filters is not None and not isinstance(filters, dict):
+        raise HTTPException(status_code=400, detail="Dashboard filters must be an object.")
+
+    schema, _, _ = _analyse_schema(dataframe)
+    quality_score = analyse_cleaning(dataframe).get("quality_score")
+    dashboard = build_dashboard(
+        dataframe,
+        schema,
+        requested_config=requested_config,
+        filters=filters,
+        quality_score=quality_score,
+    )
+    return _serialise({"dashboard": dashboard})
 
 
 @app.post("/api/datasets/clean/prepare")

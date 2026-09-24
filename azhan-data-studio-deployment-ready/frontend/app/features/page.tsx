@@ -6,10 +6,11 @@ export const metadata: Metadata = buildPageMetadata({
   title: "CSV & Excel Data Tools",
   description: "Explore Azhan Data Studio tools for CSV and Excel analysis, data quality checking, dataset comparison, forecasting, cleaning, scenarios and statistics.",
   path: "/features",
-  keywords: ["CSV tools", "Excel data tools", "online data analysis tools", "data quality tool", "data forecasting tool"],
+  keywords: ["CSV tools", "Excel data tools", "Excel dashboard generator", "CSV dashboard generator", "online data analysis tools", "data quality tool", "data forecasting tool"],
 });
 
 const guides = [
+  { href: "/features/excel-dashboard-generator", label: "DASHBOARD", title: "Excel & CSV Dashboard Generator", copy: "Automatically turn an uploaded dataset into KPIs, trends, category breakdowns, interactive filters and record-level evidence." },
   { href: "/features/csv-excel-analysis", label: "ANALYSE", title: "CSV & Excel Data Analysis", copy: "Profile a dataset, surface ranked findings, inspect evidence and export report-ready outputs." },
   { href: "/features/data-quality-checker", label: "CHECK", title: "Data Quality Checker", copy: "Review missing values, duplicate rows, inconsistencies, outliers and affected records before trusting results." },
   { href: "/features/compare-excel-files", label: "COMPARE", title: "Compare Excel & CSV Files", copy: "Measure what changed between two datasets and trace movement back to fields, categories and records." },

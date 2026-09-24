@@ -64,6 +64,32 @@ export default function GoogleAnalytics() {
         if (window.location.pathname === "/" && /Data Quality|Review data quality/i.test(text)) {
           sendEvent("data_quality_open", { source: "analyse_workspace", action_label: text });
         }
+
+        if (window.location.pathname === "/" && button.closest(".workspaceNav") && /^Dashboard$/i.test(text)) {
+          sendEvent("dashboard_open", { source: "analyse_workspace" });
+        }
+
+        if (/Customize Dashboard/i.test(text)) {
+          sendEvent("dashboard_customize_open", { source: "dashboard" });
+        }
+
+        if (/Apply filters/i.test(text)) {
+          sendEvent("dashboard_filter_apply", { source: "dashboard" });
+        }
+
+        if (/Export Dashboard/i.test(text)) {
+          sendEvent("dashboard_export", { source: "dashboard", format: "branded_pdf" });
+          return;
+        }
+
+        if (/Executive Summary PDF/i.test(text)) {
+          sendEvent("report_export", { source: "reports", report_type: "executive_summary", format: "pdf" });
+          return;
+        }
+
+        if (/Full Analysis PDF/i.test(text)) {
+          sendEvent("report_export", { source: "reports", report_type: "full_analysis", format: "pdf" });
+        }
       }
     };
 

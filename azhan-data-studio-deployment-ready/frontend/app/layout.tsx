@@ -4,7 +4,7 @@ import { CREATOR_NAME, CREATOR_URL, SITE_NAME, SITE_URL } from "./lib/seo";
 import GoogleAnalytics from "./components/google-analytics";
 
 const description =
-  "Analyse CSV and Excel data online with automated data quality checks, ranked insights, visual discovery, comparisons, forecasting, scenario analysis and statistical tools.";
+  "Analyse CSV and Excel data online and automatically generate interactive dashboards with data quality checks, ranked insights, visual discovery, comparisons, forecasting, scenario analysis and statistical tools.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -26,6 +26,9 @@ export const metadata: Metadata = {
     "data cleaning",
     "data insights",
     "data visualization",
+    "Excel dashboard generator",
+    "CSV dashboard generator",
+    "interactive dashboard",
     "forecasting tool",
     "scenario analysis",
     "statistical analysis",
@@ -91,7 +94,7 @@ const structuredData = {
       operatingSystem: "Web",
       browserRequirements: "Requires a modern web browser",
       description,
-      softwareVersion: "3.6",
+      softwareVersion: "4.0",
       isAccessibleForFree: true,
       offers: {
         "@type": "Offer",
@@ -99,7 +102,7 @@ const structuredData = {
         priceCurrency: "AUD",
       },
       creator: { "@id": `${SITE_URL}/#creator` },
-      featureList: ["CSV and Excel analysis", "Data quality checks", "Dataset comparison", "Forecasting", "Scenario analysis", "Statistical analysis", "Data cleaning"],
+      featureList: ["CSV and Excel analysis", "Automatic interactive dashboard generation", "Dashboard filtering and customisation", "Data quality checks", "Dataset comparison", "Forecasting", "Scenario analysis", "Statistical analysis", "Data cleaning"],
     },
     {
       "@type": "Person",

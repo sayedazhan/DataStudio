@@ -202,6 +202,7 @@ type InspectionResult = {
     average_semantic_confidence: number;
   };
   discovery: DiscoveryResult;
+  dashboard: DashboardResult;
   schema: SchemaField[];
   preview: Record<string, unknown>[];
 };
@@ -227,6 +228,68 @@ type WorkbookInfo = {
   sheet_count: number;
   recommended_sheet?: string | null;
   sheets: WorkbookSheet[];
+};
+
+type DashboardConfig = {
+  primary_metric: string | null;
+  secondary_metric: string | null;
+  trend_field: string | null;
+  breakdown_field: string | null;
+  compare_field: string | null;
+  distribution_metric: string | null;
+  top_field: string | null;
+};
+
+type DashboardKpi = {
+  field: string;
+  label: string;
+  value: number | null;
+  aggregation: string;
+  format: "currency" | "percent" | "number";
+  change_percent?: number | null;
+};
+
+type DashboardSeries = {
+  title: string;
+  metric?: string;
+  field?: string;
+  time_field?: string;
+  category?: string;
+  format: "currency" | "percent" | "number";
+  points?: Array<{ label: string; value: number }>;
+  bars?: Array<{ label: string; value: number }>;
+};
+
+type DashboardHeatmap = {
+  title: string;
+  metric: string;
+  x_field: string;
+  y_field: string;
+  format: "currency" | "percent" | "number";
+  x_labels: string[];
+  y_labels: string[];
+  cells: Array<{ x: string; y: string; value: number }>;
+};
+
+type DashboardResult = {
+  available: boolean;
+  message?: string | null;
+  config: DashboardConfig;
+  options: { measures: string[]; categories: string[]; times: string[] };
+  filters: Array<{ field: string; label: string; values: Array<{ value: string; count: number }> }>;
+  active_filters: Record<string, string>;
+  total_rows: number;
+  filtered_rows: number;
+  kpis: DashboardKpi[];
+  trend?: DashboardSeries | null;
+  breakdown?: DashboardSeries | null;
+  compare?: DashboardSeries | null;
+  distribution?: DashboardSeries | null;
+  heatmap?: DashboardHeatmap | null;
+  top_performers?: { title: string; field: string; metric: string; format: "currency" | "percent" | "number"; rows: Array<{ rank: number; label: string; value: number }> } | null;
+  insights: Array<{ tone: string; text: string }>;
+  records: Array<Record<string, unknown>>;
+  method: string;
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
@@ -773,6 +836,90 @@ function AutomaticVisualization({ spec }: { spec: VisualizationSpec }) {
   );
 }
 
+
+function formatDashboardValue(value: number | null | undefined, format: "currency" | "percent" | "number" = "number", compact = false) {
+  if (value == null || Number.isNaN(value)) return "—";
+  if (format === "currency") {
+    return new Intl.NumberFormat("en-AU", {
+      style: "currency",
+      currency: "AUD",
+      maximumFractionDigits: Math.abs(value) >= 1000 ? 0 : 2,
+      notation: compact && Math.abs(value) >= 1000 ? "compact" : "standard",
+    }).format(value);
+  }
+  if (format === "percent") return `${formatDecimal(value, 1)}%`;
+  return new Intl.NumberFormat("en-AU", {
+    maximumFractionDigits: Math.abs(value) >= 100 ? 0 : 2,
+    notation: compact && Math.abs(value) >= 1000 ? "compact" : "standard",
+  }).format(value);
+}
+
+function DashboardDonut({ series }: { series: DashboardSeries }) {
+  const bars = series.bars ?? [];
+  const total = bars.reduce((sum, item) => sum + Math.max(0, item.value), 0);
+  if (!bars.length || total <= 0) return <div className="chartEmpty">No grouped values are available.</div>;
+  const radius = 58;
+  const circumference = 2 * Math.PI * radius;
+  let offset = 0;
+  const palette = ["#2563eb", "#14b8a6", "#f59e0b", "#8b5cf6", "#ef4444", "#0ea5e9", "#64748b", "#84cc16"];
+  return (
+    <div className="dashboardDonutWrap">
+      <div className="dashboardDonutChart">
+        <svg viewBox="0 0 160 160" role="img" aria-label={series.title}>
+          <circle cx="80" cy="80" r={radius} fill="none" stroke="#edf2f7" strokeWidth="24" />
+          {bars.map((item, index) => {
+            const length = (Math.max(0, item.value) / total) * circumference;
+            const node = (
+              <circle
+                key={`${item.label}-${index}`}
+                cx="80" cy="80" r={radius} fill="none"
+                stroke={palette[index % palette.length]}
+                strokeWidth="24"
+                strokeDasharray={`${length} ${Math.max(0, circumference - length)}`}
+                strokeDashoffset={-offset}
+                strokeLinecap="butt"
+                transform="rotate(-90 80 80)"
+              />
+            );
+            offset += length;
+            return node;
+          })}
+        </svg>
+        <div className="dashboardDonutCentre"><strong>{formatDashboardValue(total, series.format, true)}</strong><span>{series.metric ?? "Total"}</span></div>
+      </div>
+      <div className="dashboardDonutLegend">
+        {bars.map((item, index) => (
+          <div key={item.label}><i style={{ background: palette[index % palette.length] }} /><span>{item.label}</span><strong>{formatPercent((item.value / total) * 100, 0)}</strong></div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DashboardHeatmapVisual({ heatmap }: { heatmap: DashboardHeatmap }) {
+  const values = heatmap.cells.map((cell) => Math.abs(cell.value));
+  const max = Math.max(...values, 1);
+  const lookup = new Map(heatmap.cells.map((cell) => [`${cell.y}|||${cell.x}`, cell.value]));
+  return (
+    <div className="dashboardHeatmapWrap">
+      <div className="dashboardHeatmapGrid" style={{ gridTemplateColumns: `minmax(88px, 1.1fr) repeat(${heatmap.x_labels.length}, minmax(62px, 1fr))` }}>
+        <div className="dashboardHeatmapCorner" />
+        {heatmap.x_labels.map((label) => <div className="dashboardHeatmapX" key={`x-${label}`} title={label}>{label}</div>)}
+        {heatmap.y_labels.map((yLabel) => (
+          <div style={{ display: "contents" }} key={`row-${yLabel}`}>
+            <div className="dashboardHeatmapY" title={yLabel}>{yLabel}</div>
+            {heatmap.x_labels.map((xLabel) => {
+              const value = lookup.get(`${yLabel}|||${xLabel}`) ?? 0;
+              const strength = Math.min(1, Math.abs(value) / max);
+              return <div key={`${yLabel}-${xLabel}`} className="dashboardHeatmapCell" style={{ background: `rgba(37,99,235,${0.06 + strength * 0.72})` }} title={`${yLabel} · ${xLabel}: ${formatDashboardValue(value, heatmap.format)}`}>{formatDashboardValue(value, heatmap.format, true)}</div>;
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function profileMetrics(field: SchemaField): ProfileMetric[] {
   const p = field.profile;
 
@@ -853,8 +1000,9 @@ function profileMetrics(field: SchemaField): ProfileMetric[] {
 }
 
 
-type WorkspaceTab = "overview" | "insights" | "explore" | "reports" | "quality" | "fields";
+type WorkspaceTab = "overview" | "quality" | "dashboard" | "insights" | "explore" | "reports" | "fields";
 type QualitySubTab = "overview" | "missing" | "duplicates" | "inconsistent" | "outliers" | "preview";
+type ReportVariant = "executive" | "full";
 
 export default function Home() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -875,6 +1023,13 @@ export default function Home() {
   const [reportGeneratedAt, setReportGeneratedAt] = useState("");
   const [exportNotice, setExportNotice] = useState("");
   const [analysisNotice, setAnalysisNotice] = useState("");
+  const [dashboard, setDashboard] = useState<DashboardResult | null>(null);
+  const [dashboardConfig, setDashboardConfig] = useState<DashboardConfig | null>(null);
+  const [dashboardDraftConfig, setDashboardDraftConfig] = useState<DashboardConfig | null>(null);
+  const [dashboardFilters, setDashboardFilters] = useState<Record<string, string>>({});
+  const [dashboardLoading, setDashboardLoading] = useState(false);
+  const [dashboardCustomOpen, setDashboardCustomOpen] = useState(false);
+  const [reportVariant, setReportVariant] = useState<ReportVariant>("executive");
 
   const roleCounts = useMemo(() => result?.understanding.role_counts ?? {}, [result]);
   const selectedField = useMemo(() => {
@@ -939,6 +1094,12 @@ export default function Home() {
     setReportGeneratedAt("");
     setExportNotice("");
     setAnalysisNotice("");
+    setDashboard(null);
+    setDashboardConfig(null);
+    setDashboardDraftConfig(null);
+    setDashboardFilters({});
+    setDashboardLoading(false);
+    setDashboardCustomOpen(false);
     setWorkbookInfo(null);
     setSelectedSheet("");
   }
@@ -1069,6 +1230,10 @@ export default function Home() {
 
       const typed = payload as InspectionResult;
       setResult(typed);
+      setDashboard(typed.dashboard);
+      setDashboardConfig(typed.dashboard?.config ?? null);
+      setDashboardDraftConfig(typed.dashboard?.config ?? null);
+      setDashboardFilters(typed.dashboard?.active_filters ?? {});
       setSelectedFieldName(typed.schema[0]?.name ?? "");
       setSelectedInsightId(typed.discovery.ranking.top_findings[0]?.id ?? typed.discovery.ranking.ranked_findings[0]?.id ?? "");
       setReportGeneratedAt(new Date().toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" }));
@@ -1081,6 +1246,77 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+  }
+
+
+  async function refreshDashboard(nextConfig: DashboardConfig | null = dashboardConfig, nextFilters: Record<string, string> = dashboardFilters) {
+    if (!file || !result || !nextConfig) return;
+    setDashboardLoading(true);
+    setError("");
+    const body = new FormData();
+    body.append("file", file);
+    if (file.name.toLowerCase().endsWith(".xlsx") && selectedSheet) body.append("sheet_name", selectedSheet);
+    body.append("config_json", JSON.stringify(nextConfig));
+    body.append("filters_json", JSON.stringify(nextFilters));
+    try {
+      const response = await apiFetch(`${API_URL}/api/datasets/dashboard`, { method: "POST", body });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.detail ?? "Unable to refresh this dashboard.");
+      const refreshed = payload.dashboard as DashboardResult;
+      setDashboard(refreshed);
+      setDashboardConfig(refreshed.config);
+      setDashboardDraftConfig(refreshed.config);
+      setDashboardFilters(refreshed.active_filters ?? {});
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to refresh this dashboard.");
+    } finally {
+      setDashboardLoading(false);
+    }
+  }
+
+  function updateDashboardFilter(field: string, value: string) {
+    setDashboardFilters((current) => ({ ...current, [field]: value }));
+  }
+
+  function resetDashboardFilters() {
+    const cleared: Record<string, string> = {};
+    dashboard?.filters.forEach((filter) => { cleared[filter.field] = "__all__"; });
+    setDashboardFilters(cleared);
+    void refreshDashboard(dashboardConfig, cleared);
+  }
+
+  function exportDashboardCsv() {
+    if (!dashboard || !result) return;
+    const rows = dashboard.records;
+    if (!rows.length) {
+      setExportNotice("No filtered dashboard records are available to export.");
+      return;
+    }
+    const columns = Object.keys(rows[0]);
+    const csv = [columns, ...rows.map((row) => columns.map((column) => row[column]))]
+      .map((row) => row.map(csvCell).join(","))
+      .join("\r\n");
+    downloadBlob(new Blob([`\ufeff${csv}`], { type: "text/csv;charset=utf-8" }), `${safeFileStem(result.dataset.filename)}-dashboard-filtered.csv`);
+    setExportNotice("Filtered dashboard data downloaded.");
+  }
+
+  function printDashboard() {
+    if (!result || !dashboard?.available) return;
+    const previousTitle = document.title;
+    const generatedDate = new Date().toISOString().slice(0, 10);
+    const restore = () => {
+      document.body.classList.remove("dashboardPdfMode");
+      document.title = previousTitle;
+      window.removeEventListener("afterprint", restore);
+    };
+    document.body.classList.add("dashboardPdfMode");
+    document.title = `${safeFileStem(result.dataset.filename)}-dashboard-${generatedDate}`;
+    setExportNotice("Dashboard PDF is ready. Choose Save as PDF in the print dialog.");
+    window.addEventListener("afterprint", restore);
+    window.setTimeout(() => window.print(), 100);
+    window.setTimeout(() => {
+      if (document.body.classList.contains("dashboardPdfMode")) restore();
+    }, 30000);
   }
 
   function openInsight(finding: InsightFinding) {
@@ -1128,20 +1364,28 @@ export default function Home() {
     setExportNotice("Full analysis JSON downloaded.");
   }
 
-  function printReport() {
+  function printReport(variant: ReportVariant) {
     if (!result) return;
-    setExportNotice("Print dialog opened. Choose ‘Save as PDF’ to create the PDF report.");
     const previousTitle = document.title;
     const previousTab = activeTab;
+    const generatedDate = new Date().toISOString().slice(0, 10);
+    setReportVariant(variant);
     if (activeTab !== "reports") setActiveTab("reports");
-    document.title = `${safeFileStem(result.dataset.filename)} - Azhan Data Studio Report`;
-    const restoreTitle = () => {
+    const bodyClass = variant === "executive" ? "reportPdfExecutive" : "reportPdfFull";
+    const cleanup = () => {
+      document.body.classList.remove("reportPdfMode", "reportPdfExecutive", "reportPdfFull");
       document.title = previousTitle;
       if (previousTab !== "reports") setActiveTab(previousTab);
-      window.removeEventListener("afterprint", restoreTitle);
+      window.removeEventListener("afterprint", cleanup);
     };
-    window.addEventListener("afterprint", restoreTitle);
-    window.setTimeout(() => window.print(), activeTab === "reports" ? 80 : 220);
+    document.body.classList.add("reportPdfMode", bodyClass);
+    document.title = `${safeFileStem(result.dataset.filename)}-${variant === "executive" ? "executive-summary" : "full-analysis"}-${generatedDate}`;
+    setExportNotice(`${variant === "executive" ? "Executive Summary" : "Full Analysis"} PDF is ready. Choose Save as PDF in the print dialog.`);
+    window.addEventListener("afterprint", cleanup);
+    window.setTimeout(() => window.print(), activeTab === "reports" ? 100 : 260);
+    window.setTimeout(() => {
+      if (document.body.classList.contains("reportPdfMode")) cleanup();
+    }, 30000);
   }
 
   function downloadSelectedChart() {
@@ -1307,6 +1551,7 @@ export default function Home() {
               <div className="seoDiscoveryIntro"><p>Learn how each workflow helps with analysis, data quality, dataset comparison and forecasting before opening the tool.</p><a className="seoToolkitLink" href="/features">View all feature guides →</a></div>
             </div>
             <div className="seoDiscoveryGrid">
+              <a className="seoDiscoveryCard" href="/features/excel-dashboard-generator"><span>DASHBOARD</span><strong>Excel & CSV Dashboard Generator</strong><small>Automatically build KPIs, trends, filters and interactive views from your dataset.</small></a>
               <a className="seoDiscoveryCard" href="/features/csv-excel-analysis"><span>ANALYSE</span><strong>CSV & Excel Data Analysis</strong><small>Automatic profiling, ranked insights and visual discovery.</small></a>
               <a className="seoDiscoveryCard" href="/features/data-quality-checker"><span>CHECK</span><strong>Data Quality Checker</strong><small>Missing values, duplicates, inconsistencies and outlier evidence.</small></a>
               <a className="seoDiscoveryCard" href="/features/compare-excel-files"><span>COMPARE</span><strong>Compare Excel & CSV Files</strong><small>Understand structure, record and metric changes between datasets.</small></a>
@@ -1367,6 +1612,7 @@ export default function Home() {
             {([
               ["overview", "Overview"],
               ["quality", "Data Quality"],
+              ["dashboard", "Dashboard"],
               ["insights", "Insights"],
               ["explore", "Explore"],
               ["reports", "Reports"],
@@ -1386,7 +1632,8 @@ export default function Home() {
                       <span>{result.quality.completeness_percent}% complete</span>
                       <span>{result.understanding.average_semantic_confidence}% semantic confidence</span>
                     </div>
-                    <button className="pdfReportButton" onClick={printReport}>Download PDF Report</button>
+                    <button className="secondaryButton" onClick={() => setActiveTab("dashboard")}>View Dashboard</button>
+                    <button className="pdfReportButton" onClick={() => printReport("executive")}>Download PDF Report</button>
                   </div>
                 </div>
 
@@ -1465,6 +1712,181 @@ export default function Home() {
                     <small>{SUPPORT_URL ? "Optional · secure checkout handled by Stripe" : "Configure NEXT_PUBLIC_DATA_STUDIO_SUPPORT_URL to enable checkout"}</small>
                   </div>
                 </section>
+              </div>
+            )}
+
+            {activeTab === "dashboard" && (
+              <div className="tabPage dashboardPage">
+                <div className="pageHeading dashboardHeading">
+                  <div>
+                    <span className="panelKicker">AUTO-GENERATED ANALYTICS</span>
+                    <h2>Data Dashboard</h2>
+                    <p>Automatically generated from your dataset. Filter, customise and explore the measures that matter without building charts manually.</p>
+                  </div>
+                  <div className="dashboardHeaderActions">
+                    <button className="secondaryButton" onClick={() => { setDashboardDraftConfig(dashboardConfig); setDashboardCustomOpen(true); }} disabled={!dashboard?.available}>Customize Dashboard</button>
+                    <button className="secondaryButton" onClick={exportDashboardCsv} disabled={!dashboard?.records.length}>Export Filtered Data</button>
+                    <button className="primaryButton" onClick={printDashboard} disabled={!dashboard?.available}>Export Dashboard PDF</button>
+                  </div>
+                </div>
+
+                {!dashboard?.available ? (
+                  <section className="panel dashboardEmptyState">
+                    <span>▦</span>
+                    <h3>No automatic dashboard is available for this dataset</h3>
+                    <p>{dashboard?.message ?? "A dashboard needs at least one numeric measure. You can still use Overview, Data Quality, Insights and Fields."}</p>
+                  </section>
+                ) : (
+                  <>
+                    <section className="panel dashboardFilterPanel">
+                      <div className="dashboardFilterMeta">
+                        <div><span className="panelKicker">INTERACTIVE FILTERS</span><strong>{formatNumber(dashboard.filtered_rows)} of {formatNumber(dashboard.total_rows)} records</strong></div>
+                        {dashboardLoading && <span className="dashboardRefreshing">Refreshing dashboard…</span>}
+                      </div>
+                      <div className="dashboardFilterGrid">
+                        {dashboard.filters.slice(0, 4).map((filter) => (
+                          <label key={filter.field}><span>{filter.label}</span><select value={dashboardFilters[filter.field] ?? "__all__"} onChange={(event) => updateDashboardFilter(filter.field, event.target.value)}><option value="__all__">All</option>{filter.values.map((item) => <option key={item.value} value={item.value}>{item.value} ({formatNumber(item.count)})</option>)}</select></label>
+                        ))}
+                        <div className="dashboardFilterButtons"><button className="primaryButton" onClick={() => void refreshDashboard()} disabled={dashboardLoading}>Apply filters</button><button className="secondaryButton" onClick={resetDashboardFilters} disabled={dashboardLoading}>Reset</button></div>
+                      </div>
+                    </section>
+
+                    <div className="dashboardKpiGrid">
+                      {dashboard.kpis.map((kpi) => (
+                        <article className="dashboardKpiCard" key={kpi.field}>
+                          <span>{kpi.aggregation === "average" ? `Average ${kpi.label}` : kpi.label}</span>
+                          <strong>{formatDashboardValue(kpi.value, kpi.format, true)}</strong>
+                          {kpi.change_percent != null ? <small className={kpi.change_percent >= 0 ? "up" : "down"}>{kpi.change_percent >= 0 ? "↑" : "↓"} {formatPercent(Math.abs(kpi.change_percent), 1)} vs previous period</small> : <small>{kpi.field === "__rows__" ? "Current filtered records" : `${kpi.aggregation} across filtered data`}</small>}
+                        </article>
+                      ))}
+                    </div>
+
+                    <div className="dashboardPrimaryGrid">
+                      <section className="panel dashboardChartCard dashboardTrendCard">
+                        <div className="panelHeader compactHeader"><div><span className="panelKicker">TREND</span><h3>{dashboard.trend?.title ?? "Trend"}</h3><p>{dashboard.trend ? `${dashboard.trend.time_field} · ${dashboard.trend.field}` : "No time field detected"}</p></div></div>
+                        {dashboard.trend?.points?.length ? <LineVisual spec={{ kind: "line", title: dashboard.trend.title, subtitle: "", value_format: dashboard.trend.format === "percent" ? "percent" : "number", points: dashboard.trend.points, selection_reason: "Automatically selected from the dataset's primary measure and time field." }} /> : <div className="chartEmpty">No reliable time field was detected for a trend chart.</div>}
+                      </section>
+                      <section className="panel dashboardChartCard dashboardShareCard">
+                        <div className="panelHeader compactHeader"><div><span className="panelKicker">BREAKDOWN</span><h3>{dashboard.breakdown?.title ?? "Category share"}</h3><p>Contribution across the leading categories</p></div></div>
+                        {dashboard.breakdown?.bars?.length ? <DashboardDonut series={dashboard.breakdown} /> : <div className="chartEmpty">No suitable category field was detected.</div>}
+                      </section>
+                    </div>
+
+                    <div className="dashboardSecondaryGrid">
+                      <section className="panel dashboardChartCard">
+                        <div className="panelHeader compactHeader"><div><span className="panelKicker">COMPARISON</span><h3>{dashboard.compare?.title ?? "Category comparison"}</h3></div></div>
+                        {dashboard.compare?.bars?.length ? <BarVisual spec={{ kind: "bar", title: dashboard.compare.title, subtitle: "", value_format: dashboard.compare.format === "percent" ? "percent" : "number", bars: dashboard.compare.bars, selection_reason: "Automatic category comparison." }} /> : <div className="chartEmpty">No second comparison dimension is available.</div>}
+                      </section>
+                      <section className="panel dashboardChartCard">
+                        <div className="panelHeader compactHeader"><div><span className="panelKicker">DISTRIBUTION</span><h3>{dashboard.distribution?.title ?? "Distribution"}</h3></div></div>
+                        {dashboard.distribution?.bars?.length ? <HistogramVisual spec={{ kind: "histogram", title: dashboard.distribution.title, subtitle: "", bars: dashboard.distribution.bars.map((bar) => ({ ...bar, count: bar.value })), selection_reason: "Automatic numeric distribution." }} /> : <div className="chartEmpty">No numeric distribution is available.</div>}
+                      </section>
+                    </div>
+
+                    {dashboard.heatmap && dashboard.heatmap.cells.length > 0 && (
+                      <section className="panel dashboardHeatmapCard">
+                        <div className="panelHeader compactHeader"><div><span className="panelKicker">CROSS-SECTION</span><h3>{dashboard.heatmap.title}</h3><p>Compare the primary measure across the leading values in two dimensions.</p></div></div>
+                        <DashboardHeatmapVisual heatmap={dashboard.heatmap} />
+                      </section>
+                    )}
+
+                    <div className="dashboardInsightGrid">
+                      <section className="panel dashboardInsightPanel">
+                        <div className="panelHeader compactHeader"><div><span className="panelKicker">KEY INSIGHTS</span><h3>What stands out</h3></div><button className="textButton" onClick={() => setActiveTab("insights")}>Open full Insights →</button></div>
+                        <div className="dashboardInsightList">{dashboard.insights.length ? dashboard.insights.map((item, index) => <div className={`dashboardInsightItem ${item.tone}`} key={`${item.text}-${index}`}><span>{item.tone === "positive" ? "↑" : item.tone === "warning" ? "!" : item.tone === "info" ? "◎" : "•"}</span><p>{item.text}</p></div>) : <div className="emptyState">No dashboard observations are available for the current selection.</div>}</div>
+                      </section>
+                      <section className="panel dashboardTopPanel">
+                        <div className="panelHeader compactHeader"><div><span className="panelKicker">TOP PERFORMERS</span><h3>{dashboard.top_performers?.title ?? "Top performers"}</h3></div></div>
+                        {dashboard.top_performers?.rows.length ? <div className="dashboardTopList">{dashboard.top_performers.rows.slice(0, 8).map((row) => <div key={`${row.rank}-${row.label}`}><span>{row.rank}</span><strong>{row.label}</strong><em>{formatDashboardValue(row.value, dashboard.top_performers!.format, true)}</em></div>)}</div> : <div className="emptyState">No ranked category is available.</div>}
+                      </section>
+                    </div>
+
+                    <section className="panel dashboardRecordsPanel">
+                      <div className="panelHeader compactHeader"><div><span className="panelKicker">FILTERED RECORDS</span><h3>Underlying data</h3><p>Showing up to 100 records under the current dashboard filters.</p></div><button className="secondaryButton" onClick={exportDashboardCsv}>Export filtered data</button></div>
+                      {dashboard.records.length ? <div className="dashboardRecordsWrap"><table><thead><tr>{Object.keys(dashboard.records[0]).map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{dashboard.records.slice(0, 30).map((row, index) => <tr key={index}>{Object.keys(dashboard.records[0]).map((column) => <td key={column}>{row[column] == null ? "—" : String(row[column])}</td>)}</tr>)}</tbody></table></div> : <div className="emptyState">No rows match the current dashboard filters.</div>}
+                    </section>
+
+                    <div className="dashboardMethodNote"><strong>How this dashboard is built:</strong> {dashboard.method}</div>
+
+                    <section className="dashboardPdfReport" aria-hidden="true">
+                      <header className="dashboardPdfCover">
+                        <div className="dashboardPdfBrandRow">
+                          <div className="dashboardPdfBrand"><DataStudioMark /><span><strong>Azhan Data Studio</strong><small>Automated Data Intelligence</small></span></div>
+                          <div className="dashboardPdfIdentity"><strong>azhandatastudio.com</strong><small>Interactive Dashboard Report</small></div>
+                        </div>
+                        <div className="dashboardPdfTitleBlock">
+                          <span>DASHBOARD REPORT</span>
+                          <h1>Interactive Data Dashboard</h1>
+                          <p>{result.dataset.filename}</p>
+                          {result.dataset.sheet_name && <small>Worksheet: {result.dataset.sheet_name}</small>}
+                        </div>
+                        <div className="dashboardPdfMeta">
+                          <span><b>Generated</b>{reportGeneratedAt || new Date().toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}</span>
+                          <span><b>Records</b>{formatNumber(dashboard.filtered_rows)} of {formatNumber(dashboard.total_rows)}</span>
+                          <span><b>Fields</b>{formatNumber(result.dataset.columns)}</span>
+                        </div>
+                        <div className="dashboardPdfFilterSummary">
+                          <strong>Active filters</strong>
+                          <div>{Object.entries(dashboard.active_filters ?? {}).filter(([, value]) => value && value !== "__all__").length ? Object.entries(dashboard.active_filters ?? {}).filter(([, value]) => value && value !== "__all__").map(([field, value]) => <span key={`pdf-filter-${field}`}><b>{field}</b>{value}</span>) : <span><b>View</b>All records</span>}</div>
+                        </div>
+                      </header>
+
+                      <section className="dashboardPdfKpis">
+                        {dashboard.kpis.slice(0, 4).map((kpi) => <article key={`pdf-kpi-${kpi.field}`}><span>{kpi.aggregation === "average" ? `Average ${kpi.label}` : kpi.label}</span><strong>{formatDashboardValue(kpi.value, kpi.format, true)}</strong><small>{kpi.change_percent != null ? `${kpi.change_percent >= 0 ? "Up" : "Down"} ${formatPercent(Math.abs(kpi.change_percent), 1)} vs previous period` : kpi.field === "__rows__" ? "Current filtered records" : `${kpi.aggregation} across filtered data`}</small></article>)}
+                      </section>
+
+                      <section className="dashboardPdfSection">
+                        <div className="dashboardPdfSectionHead"><span>01</span><div><h2>Performance overview</h2><p>The primary trend and category contribution generated from the current dashboard configuration.</p></div></div>
+                        <div className="dashboardPdfTwoCol">
+                          <article className="dashboardPdfChart"><h3>{dashboard.trend?.title ?? "Trend"}</h3>{dashboard.trend?.points?.length ? <LineVisual spec={{ kind: "line", title: dashboard.trend.title, subtitle: "", value_format: dashboard.trend.format === "percent" ? "percent" : "number", points: dashboard.trend.points, selection_reason: "Dashboard trend" }} /> : <div className="chartEmpty">No reliable time field detected.</div>}</article>
+                          <article className="dashboardPdfChart"><h3>{dashboard.breakdown?.title ?? "Category share"}</h3>{dashboard.breakdown?.bars?.length ? <DashboardDonut series={dashboard.breakdown} /> : <div className="chartEmpty">No suitable category field detected.</div>}</article>
+                        </div>
+                      </section>
+
+                      <section className="dashboardPdfSection dashboardPdfPageBreak">
+                        <div className="dashboardPdfSectionHead"><span>02</span><div><h2>Comparison &amp; distribution</h2><p>Additional views that explain where performance is concentrated and how the primary measure is distributed.</p></div></div>
+                        <div className="dashboardPdfTwoCol">
+                          <article className="dashboardPdfChart"><h3>{dashboard.compare?.title ?? "Category comparison"}</h3>{dashboard.compare?.bars?.length ? <BarVisual spec={{ kind: "bar", title: dashboard.compare.title, subtitle: "", value_format: dashboard.compare.format === "percent" ? "percent" : "number", bars: dashboard.compare.bars, selection_reason: "Dashboard comparison" }} /> : <div className="chartEmpty">No second comparison dimension available.</div>}</article>
+                          <article className="dashboardPdfChart"><h3>{dashboard.distribution?.title ?? "Distribution"}</h3>{dashboard.distribution?.bars?.length ? <HistogramVisual spec={{ kind: "histogram", title: dashboard.distribution.title, subtitle: "", bars: dashboard.distribution.bars.map((bar) => ({ ...bar, count: bar.value })), selection_reason: "Dashboard distribution" }} /> : <div className="chartEmpty">No numeric distribution available.</div>}</article>
+                        </div>
+                        {dashboard.heatmap && dashboard.heatmap.cells.length > 0 && <article className="dashboardPdfHeatmap"><h3>{dashboard.heatmap.title}</h3><DashboardHeatmapVisual heatmap={dashboard.heatmap} /></article>}
+                      </section>
+
+                      <section className="dashboardPdfSection dashboardPdfPageBreak">
+                        <div className="dashboardPdfSectionHead"><span>03</span><div><h2>Key observations</h2><p>Deterministic observations and top performers from the current filtered view.</p></div></div>
+                        <div className="dashboardPdfInsightGrid">
+                          <div>{dashboard.insights.slice(0, 6).map((item, index) => <article key={`pdf-insight-${index}`}><span>{String(index + 1).padStart(2, "0")}</span><p>{item.text}</p></article>)}</div>
+                          <div>{dashboard.top_performers?.rows.slice(0, 8).map((row) => <article key={`pdf-top-${row.rank}-${row.label}`}><span>{row.rank}</span><strong>{row.label}</strong><em>{formatDashboardValue(row.value, dashboard.top_performers!.format, true)}</em></article>)}</div>
+                        </div>
+                      </section>
+
+                      <section className="dashboardPdfSection">
+                        <div className="dashboardPdfSectionHead"><span>04</span><div><h2>Evidence sample</h2><p>A compact sample of filtered records. Export Filtered Data from the dashboard for the complete underlying dataset.</p></div></div>
+                        {dashboard.records.length ? <div className="dashboardPdfTableWrap"><table><thead><tr>{Object.keys(dashboard.records[0]).slice(0, 7).map((column) => <th key={`pdf-head-${column}`}>{column}</th>)}</tr></thead><tbody>{dashboard.records.slice(0, 12).map((row, index) => <tr key={`pdf-row-${index}`}>{Object.keys(dashboard.records[0]).slice(0, 7).map((column) => <td key={`pdf-cell-${index}-${column}`}>{String(row[column] ?? "")}</td>)}</tr>)}</tbody></table></div> : <div className="emptyState">No filtered records available.</div>}
+                      </section>
+
+                      <section className="dashboardPdfMethod"><strong>Methodology</strong><p>{dashboard.method} The dashboard reflects the filters and configuration active at the time of export. Calculations are deterministic and no uploaded dataset content is sent to an AI assistant or LLM.</p></section>
+                      <footer className="dashboardPdfFooter"><span>Azhan Data Studio · Automated Data Intelligence</span><span>azhandatastudio.com</span><span>Created by Azhan Hassan</span></footer>
+                    </section>
+                  </>
+                )}
+
+                {dashboardCustomOpen && dashboardDraftConfig && dashboard && (
+                  <div className="dashboardModalBackdrop" role="presentation" onMouseDown={() => setDashboardCustomOpen(false)}>
+                    <section className="dashboardModal" role="dialog" aria-modal="true" aria-label="Customize Dashboard" onMouseDown={(event) => event.stopPropagation()}>
+                      <div className="dashboardModalHeader"><div><span>⚙</span><div><h3>Customize Dashboard</h3><p>Choose which fields drive the dashboard. Your source data is not changed.</p></div></div><button onClick={() => setDashboardCustomOpen(false)} aria-label="Close">×</button></div>
+                      <div className="dashboardModalGrid">
+                        <label><span>Primary KPI</span><select value={dashboardDraftConfig.primary_metric ?? ""} onChange={(event) => setDashboardDraftConfig({ ...dashboardDraftConfig, primary_metric: event.target.value || null, distribution_metric: event.target.value || null })}>{dashboard.options.measures.map((field) => <option key={field} value={field}>{field}</option>)}</select></label>
+                        <label><span>Secondary KPI</span><select value={dashboardDraftConfig.secondary_metric ?? ""} onChange={(event) => setDashboardDraftConfig({ ...dashboardDraftConfig, secondary_metric: event.target.value || null })}>{dashboard.options.measures.map((field) => <option key={field} value={field}>{field}</option>)}</select></label>
+                        <label><span>Trend Chart</span><select value={dashboardDraftConfig.trend_field ?? ""} onChange={(event) => setDashboardDraftConfig({ ...dashboardDraftConfig, trend_field: event.target.value || null })}><option value="">No trend field</option>{dashboard.options.times.map((field) => <option key={field} value={field}>{field}</option>)}</select></label>
+                        <label><span>Breakdown Chart</span><select value={dashboardDraftConfig.breakdown_field ?? ""} onChange={(event) => setDashboardDraftConfig({ ...dashboardDraftConfig, breakdown_field: event.target.value || null, top_field: event.target.value || null })}><option value="">No breakdown</option>{dashboard.options.categories.map((field) => <option key={field} value={field}>{field}</option>)}</select></label>
+                        <label><span>Compare Chart</span><select value={dashboardDraftConfig.compare_field ?? ""} onChange={(event) => setDashboardDraftConfig({ ...dashboardDraftConfig, compare_field: event.target.value || null })}><option value="">No comparison</option>{dashboard.options.categories.map((field) => <option key={field} value={field}>{field}</option>)}</select></label>
+                        <label><span>Distribution</span><select value={dashboardDraftConfig.distribution_metric ?? ""} onChange={(event) => setDashboardDraftConfig({ ...dashboardDraftConfig, distribution_metric: event.target.value || null })}>{dashboard.options.measures.map((field) => <option key={field} value={field}>{field}</option>)}</select></label>
+                      </div>
+                      <div className="dashboardModalFooter"><button className="secondaryButton" onClick={() => setDashboardDraftConfig(result.dashboard.config)}>Reset to Default</button><button className="primaryButton" disabled={dashboardLoading} onClick={() => { const next = dashboardDraftConfig; setDashboardCustomOpen(false); void refreshDashboard(next, dashboardFilters); }}>{dashboardLoading ? "Applying…" : "Apply Changes"}</button></div>
+                    </section>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1598,11 +2020,12 @@ export default function Home() {
                   <div className="reportActionIntro">
                     <span className="panelKicker">EXPORT CENTRE</span>
                     <h3>Take the analysis with you</h3>
-                    <p>Download a branded PDF-ready report using your browser print dialog. Choose <strong>Save as PDF</strong> when prompted.</p>
-                    <div className="reportActionBrand">Reports carry the Azhan Data Studio identity and link back to the Azhan Hassan portfolio.</div>
+                    <p>Choose a concise executive summary or a deeper full analysis report. Both are formatted for A4 and carry the Azhan Data Studio identity.</p>
+                    <div className="reportActionBrand">Branded with azhandatastudio.com, dataset context, generated date and report-safe charts.</div>
                   </div>
                   <div className="reportActionButtons">
-                    <button className="primaryButton compactPrimary" onClick={printReport}>Download PDF Report</button>
+                    <button className="primaryButton compactPrimary" onClick={() => printReport("executive")}>Executive Summary PDF</button>
+                    <button className="secondaryButton" onClick={() => printReport("full")}>Full Analysis PDF</button>
                     <button className="secondaryButton" onClick={exportInsightsCsv}>Download insights CSV</button>
                     {SUPPORT_URL ? <a className="supportSecondaryButton" href={SUPPORT_URL} target="_blank" rel="noreferrer">☕ Support the project</a> : <a className="supportSecondaryButton" href="#support">☕ Support the project</a>}
                   </div>
@@ -1613,10 +2036,10 @@ export default function Home() {
                   <div className="reportCover">
                     <div className="reportBrandRow">
                       <div className="reportBrand"><DataStudioMark /><span className="reportBrandText"><strong>Azhan Data Studio</strong><small>Automated Data Intelligence</small></span></div>
-                      <div className="reportPowered"><span>CREATED BY</span><strong>Azhan Hassan</strong><em>Data &amp; AI Automation Specialist</em><a href={PORTFOLIO_URL} target="_blank" rel="noreferrer">syedazhan.netlify.app ↗</a></div>
+                      <div className="reportPowered"><span>AZHAN DATA STUDIO</span><strong>azhandatastudio.com</strong><em>Automated Data Intelligence</em><small>Created by Azhan Hassan</small></div>
                     </div>
-                    <span className="reportVersion">ANALYTICAL REPORT</span>
-                    <h1>Data Analysis Report</h1>
+                    <span className="reportVersion">{reportVariant === "executive" ? "EXECUTIVE SUMMARY" : "FULL ANALYSIS REPORT"}</span>
+                    <h1>{reportVariant === "executive" ? "Executive Data Summary" : "Data Analysis Report"}</h1>
                     <p className="reportDatasetName">{result.dataset.filename}</p>
                     {result.dataset.sheet_name && <p className="reportSheetName">Worksheet: {result.dataset.sheet_name}</p>}
                     <div className="reportMeta"><span>Generated {reportGeneratedAt || "—"}</span><span>{formatNumber(result.dataset.rows)} rows</span><span>{formatNumber(result.dataset.columns)} fields</span></div>
@@ -1629,8 +2052,23 @@ export default function Home() {
                     <div><span>Duplicate rows</span><strong>{formatNumber(result.quality.duplicate_rows)}</strong></div>
                   </div>
 
+                  <section className="reportSection reportExecutiveSummary">
+                    <div className="reportSectionHeading"><span>01</span><div><h2>Executive summary</h2><p>A concise view of what matters most in this dataset.</p></div></div>
+                    <div className="reportExecutiveGrid">
+                      <article><span>Headline finding</span><strong>{featuredFindings[0]?.title ?? "No ranked finding available"}</strong><p>{featuredFindings[0]?.summary ?? "The analysis did not identify a sufficiently strong ranked finding."}</p></article>
+                      <article><span>Data health</span><strong>{result.quality.completeness_percent}% complete</strong><p>{formatNumber(result.quality.missing_values)} missing values and {formatNumber(result.quality.duplicate_rows)} duplicate rows were detected.</p></article>
+                    </div>
+                    {dashboard?.available && dashboard.insights.length > 0 && <div className="reportExecutiveBullets">{dashboard.insights.slice(0, 4).map((item, index) => <div key={`report-exec-${index}`}><span>{String(index + 1).padStart(2,"0")}</span><p>{item.text}</p></div>)}</div>}
+                  </section>
+
+                  {dashboard?.available && <section className="reportSection reportDashboardSnapshot">
+                    <div className="reportSectionHeading"><span>02</span><div><h2>Dashboard snapshot</h2><p>The KPI and visual view generated from the current dashboard configuration.</p></div></div>
+                    <div className="reportDashboardKpis">{dashboard.kpis.slice(0,4).map((kpi) => <div key={`report-dashboard-${kpi.field}`}><span>{kpi.label}</span><strong>{formatDashboardValue(kpi.value,kpi.format,true)}</strong></div>)}</div>
+                    <div className="reportDashboardCharts"><article>{dashboard.trend?.points?.length ? <LineVisual spec={{ kind:"line", title:dashboard.trend.title, subtitle:"", value_format:dashboard.trend.format === "percent" ? "percent" : "number", points:dashboard.trend.points, selection_reason:"Dashboard snapshot" }} /> : <div className="chartEmpty">No time trend available.</div>}</article><article>{dashboard.breakdown?.bars?.length ? <DashboardDonut series={dashboard.breakdown} /> : <div className="chartEmpty">No category breakdown available.</div>}</article></div>
+                  </section>}
+
                   <section className="reportSection">
-                    <div className="reportSectionHeading"><span>01</span><div><h2>Top findings</h2><p>The five highest-ranked findings based on impact, confidence, unusualness, coverage and relevance.</p></div></div>
+                    <div className="reportSectionHeading"><span>03</span><div><h2>Top findings</h2><p>The five highest-ranked findings based on impact, confidence, unusualness, coverage and relevance.</p></div></div>
                     <div className="reportTopFindings">
                       {featuredFindings.map((finding, index) => (
                         <article className="reportInsight" key={`report-${finding.id}`}>
@@ -1646,8 +2084,8 @@ export default function Home() {
                     </div>
                   </section>
 
-                  <section className="reportSection reportVisualSection">
-                    <div className="reportSectionHeading"><span>02</span><div><h2>Visual summary</h2><p>A varied set of automatically selected analytical views from the dataset.</p></div></div>
+                  <section className="reportSection reportVisualSection reportFullOnly">
+                    <div className="reportSectionHeading"><span>04</span><div><h2>Visual summary</h2><p>A varied set of automatically selected analytical views from the dataset.</p></div></div>
                     <div className="reportVisualGrid">
                       {visualGallery.slice(0, 6).map((item) => (
                         <article className="reportChartCard" key={`report-chart-${item.id}`}>
@@ -1659,7 +2097,7 @@ export default function Home() {
                   </section>
 
                   <section className="reportSection">
-                    <div className="reportSectionHeading"><span>03</span><div><h2>Data quality</h2><p>Quality conditions that should be considered when interpreting the analysis.</p></div></div>
+                    <div className="reportSectionHeading"><span>05</span><div><h2>Data quality</h2><p>Quality conditions that should be considered when interpreting the analysis.</p></div></div>
                     <div className="reportQualityGrid">
                       <div><span>Completeness</span><strong>{result.quality.completeness_percent}%</strong></div>
                       <div><span>Missing values</span><strong>{formatNumber(result.quality.missing_values)}</strong></div>
@@ -1673,8 +2111,8 @@ export default function Home() {
                     )}
                   </section>
 
-                  <section className="reportSection">
-                    <div className="reportSectionHeading"><span>04</span><div><h2>Insight register</h2><p>The highest-ranked findings in a compact evidence register.</p></div></div>
+                  <section className="reportSection reportFullOnly">
+                    <div className="reportSectionHeading"><span>06</span><div><h2>Insight register</h2><p>The highest-ranked findings in a compact evidence register.</p></div></div>
                     <div className="reportTableWrap">
                       <table className="reportTable"><thead><tr><th>Rank</th><th>Priority</th><th>Score</th><th>Type</th><th>Finding</th><th>Fields</th></tr></thead><tbody>
                         {rankedFindings.slice(0, 15).map((finding, index) => <tr key={`report-register-${finding.id}`}><td>{index + 1}</td><td>{priorityLabel(finding.priority)}</td><td>{formatDecimal(finding.insight_score, 0)}</td><td>{insightLabel(finding.type)}</td><td><strong>{finding.title}</strong><small>{finding.summary}</small></td><td>{finding.fields.join(", ") || "Dataset"}</td></tr>)}
@@ -1682,15 +2120,15 @@ export default function Home() {
                     </div>
                   </section>
 
-                  <section className="reportMethodology">
+                  <section className="reportMethodology reportFullOnly">
                     <span className="panelKicker">METHODOLOGY</span>
                     <h2>How this report was produced</h2>
                     <p>Azhan Data Studio profiles the dataset, detects semantic field roles, runs deterministic statistical discovery modules, ranks findings, and selects suitable visualisations. The calculations and report content use deterministic analytics and do <strong>not</strong> use an AI assistant or LLM-generated interpretation.</p>
-                    <p className="reportCreatorNote">Azhan Data Studio is created by <strong>Azhan Hassan</strong>, Data &amp; AI Automation Specialist. <a href={PORTFOLIO_URL} target="_blank" rel="noreferrer">View portfolio ↗</a></p>
+                    <p className="reportCreatorNote"><strong>Azhan Data Studio</strong> is available at azhandatastudio.com and is created by Azhan Hassan, Data &amp; AI Automation Specialist.</p>
                     <div className="methodChips">{result.discovery.modules_run.map((module) => <span key={`method-${module}`}>{module.replaceAll("_", " ")}</span>)}</div>
                   </section>
 
-                  <div className="reportFooter"><span>Azhan Data Studio</span><span className="reportFooterCreator">Azhan Hassan · Data &amp; AI Automation Specialist · syedazhan.netlify.app</span><span>{reportGeneratedAt || "Generated report"}</span></div>
+                  <div className="reportFooter"><span>Azhan Data Studio · Automated Data Intelligence</span><span className="reportFooterCreator">azhandatastudio.com</span><span>{reportGeneratedAt || "Generated report"}</span></div>
                 </section>
               </div>
             )}

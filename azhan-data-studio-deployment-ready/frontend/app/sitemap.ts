@@ -7,6 +7,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const routes = [
     { path: "/", priority: 1, changeFrequency: "weekly" as const },
     { path: "/features", priority: 0.9, changeFrequency: "monthly" as const },
+    { path: "/features/excel-dashboard-generator", priority: 0.98, changeFrequency: "monthly" as const },
     { path: "/features/csv-excel-analysis", priority: 0.95, changeFrequency: "monthly" as const },
     { path: "/features/data-quality-checker", priority: 0.95, changeFrequency: "monthly" as const },
     { path: "/features/compare-excel-files", priority: 0.9, changeFrequency: "monthly" as const },
