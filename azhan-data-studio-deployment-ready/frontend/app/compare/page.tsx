@@ -451,6 +451,7 @@ export default function ComparePage() {
       <nav className="studioModeBar" aria-label="Choose analysis mode">
         <div className="studioModeInner">
           <a className="studioModeTab" href="/"><span className="studioModeIcon">▤</span><span><strong>Analyse Single File</strong><small>Discover insights, quality and visuals</small></span></a>
+          <a className="studioModeTab" href="/clean"><span className="studioModeIcon">✦</span><span><strong>Clean My Data</strong><small>Fix common data-quality issues</small></span><em>NEW</em></a>
           <a className="studioModeTab" href="/monthly"><span className="studioModeIcon">▦</span><span><strong>Monthly Intelligence</strong><small>Append monthly files and track movement</small></span><em>NEW</em></a>
           <a className="studioModeTab active" href="/compare"><span className="studioModeIcon">↔</span><span><strong>Compare Datasets</strong><small>Find and explain what changed</small></span></a>
           <a className="studioModeTab" href="/forecast"><span className="studioModeIcon">↗</span><span><strong>Forecast</strong><small>Project a metric into future periods</small></span></a>
