@@ -94,9 +94,10 @@ def analyse_cleaning(frame: pl.DataFrame) -> dict[str, Any]:
     date_issue_columns: list[dict[str, Any]] = []
 
     for col in string_cols:
-        values = ["" if v is None else str(v) for v in frame.get_column(col).to_list()]
-        whitespace_cells += sum(1 for v in values if v and v != v.strip())
-        empty_string_cells += sum(1 for v in values if v.strip() == "")
+        raw_values = frame.get_column(col).to_list()
+        values = ["" if v is None else str(v) for v in raw_values]
+        whitespace_cells += sum(1 for v in raw_values if isinstance(v, str) and v and v != v.strip())
+        empty_string_cells += sum(1 for v in raw_values if isinstance(v, str) and v.strip() == "")
 
         groups: dict[str, set[str]] = defaultdict(set)
         for v in values[:5000]:
@@ -128,14 +129,153 @@ def analyse_cleaning(frame: pl.DataFrame) -> dict[str, Any]:
         if old != new
     ]
 
-    issue_count = (
-        duplicate_rows + blank_rows + whitespace_cells + empty_string_cells
-        + len(changed_headers) + len(case_issue_columns) + len(date_issue_columns)
-    )
+    missing_by_column: list[dict[str, Any]] = []
+    missing_columns: set[str] = set()
+    for col, dtype in frame.schema.items():
+        series = frame.get_column(col)
+        count = int(series.null_count())
+        if dtype == pl.String:
+            count += int((series.drop_nulls().str.strip_chars() == "").sum())
+        if count > 0:
+            missing_columns.add(col)
+            missing_by_column.append({
+                "column": col,
+                "count": count,
+                "percent": round(count / max(rows_before, 1) * 100, 2),
+            })
+    missing_by_column.sort(key=lambda item: (item["count"], item["percent"]), reverse=True)
+
+    outlier_columns: list[dict[str, Any]] = []
+    outlier_row_indexes: set[int] = set()
+    for col, dtype in frame.schema.items():
+        if not dtype.is_numeric() or dtype == pl.Boolean:
+            continue
+        series = frame.get_column(col).cast(pl.Float64, strict=False)
+        numeric = series.drop_nulls()
+        if len(numeric) < 4:
+            continue
+        q1 = numeric.quantile(0.25)
+        q3 = numeric.quantile(0.75)
+        if q1 is None or q3 is None:
+            continue
+        iqr = q3 - q1
+        if iqr <= 0:
+            continue
+        lower = q1 - 1.5 * iqr
+        upper = q3 + 1.5 * iqr
+        flags = ((series < lower) | (series > upper)).fill_null(False)
+        count = int(flags.sum())
+        if count <= 0:
+            continue
+        indexes = [idx for idx, flagged in enumerate(flags.to_list()) if flagged]
+        outlier_row_indexes.update(indexes)
+        examples = [value for value, flagged in zip(series.to_list(), flags.to_list()) if flagged][:5]
+        outlier_columns.append({
+            "column": col,
+            "count": count,
+            "percent": round(count / max(rows_before, 1) * 100, 2),
+            "lower_fence": lower,
+            "upper_fence": upper,
+            "examples": examples,
+        })
+    outlier_columns.sort(key=lambda item: item["count"], reverse=True)
+
+    duplicate_preview: list[dict[str, Any]] = []
+    duplicate_row_indexes: set[int] = set()
+    if rows_before:
+        try:
+            duplicate_mask = frame.is_duplicated()
+            duplicate_row_indexes = {idx for idx, flagged in enumerate(duplicate_mask.to_list()) if flagged}
+            if duplicate_row_indexes:
+                duplicate_preview = (
+                    frame.with_row_index("__row_number", offset=1)
+                    .filter(duplicate_mask)
+                    .head(8)
+                    .to_dicts()
+                )
+        except Exception:
+            duplicate_preview = []
+
+    missing_row_indexes: set[int] = set()
+    missing_preview: list[dict[str, Any]] = []
+    if rows_before and frame.columns:
+        try:
+            missing_checks = []
+            for c, dtype in frame.schema.items():
+                check = pl.col(c).is_null()
+                if dtype == pl.String:
+                    check = check | (pl.col(c).str.strip_chars() == "")
+                missing_checks.append(check)
+            missing_mask = pl.any_horizontal(missing_checks)
+            indexed_missing = frame.with_row_index("__row_number", offset=1).filter(missing_mask)
+            missing_row_indexes = {int(value) - 1 for value in indexed_missing.get_column("__row_number").to_list()}
+            missing_preview = indexed_missing.head(8).to_dicts()
+        except Exception:
+            missing_row_indexes = set()
+            missing_preview = []
+
+    outlier_preview: list[dict[str, Any]] = []
+    if outlier_row_indexes:
+        try:
+            mask = pl.Series("__outlier_flag", [idx in outlier_row_indexes for idx in range(rows_before)])
+            outlier_preview = frame.with_row_index("__row_number", offset=1).filter(mask).head(8).to_dicts()
+        except Exception:
+            outlier_preview = []
+
+    inconsistent_columns = [
+        {
+            "column": item["column"],
+            "variant_groups": item["variant_groups"],
+            "examples": item["examples"],
+        }
+        for item in case_issue_columns
+    ]
+
+    columns_with_issues = set(missing_columns)
+    columns_with_issues.update(item["column"] for item in inconsistent_columns)
+    columns_with_issues.update(item["column"] for item in date_issue_columns)
+    columns_with_issues.update(item["column"] for item in outlier_columns)
+
+    affected_rows = len(missing_row_indexes | duplicate_row_indexes | outlier_row_indexes)
+
+    issue_breakdown = {
+        "missing_values": missing_values + empty_string_cells,
+        "duplicates": duplicate_rows,
+        "inconsistent_data": sum(item["variant_groups"] for item in case_issue_columns),
+        "outliers": sum(item["count"] for item in outlier_columns),
+        "invalid_format": len(date_issue_columns),
+    }
+
+    issue_count = sum(issue_breakdown.values()) + blank_rows + whitespace_cells + len(changed_headers)
 
     total_cells = max(rows_before * max(columns_before, 1), 1)
     completeness = round((1 - (missing_values + empty_string_cells) / total_cells) * 100, 1)
-    quality_score = max(0, min(100, round(completeness - min(25, duplicate_rows / max(rows_before, 1) * 100), 1)))
+    duplicate_penalty = min(18, duplicate_rows / max(rows_before, 1) * 100)
+    inconsistency_penalty = min(8, issue_breakdown["inconsistent_data"] * 0.5)
+    outlier_penalty = min(6, issue_breakdown["outliers"] / max(rows_before, 1) * 100 * 0.5)
+    quality_score = max(0, min(100, round(completeness - duplicate_penalty - inconsistency_penalty - outlier_penalty, 1)))
+
+    validation_checks = [
+        {"label": "File loaded successfully", "status": "pass"},
+        {"label": "Dataset contains rows and columns", "status": "pass" if rows_before and columns_before else "warn"},
+        {"label": "Required field types profiled", "status": "pass"},
+        {"label": "No exact duplicate rows", "status": "pass" if duplicate_rows == 0 else "warn"},
+        {"label": "No high missingness fields (20%+)", "status": "pass" if not any(item["percent"] >= 20 for item in missing_by_column) else "warn"},
+    ]
+
+    recommended_actions_list: list[str] = []
+    if missing_values or empty_string_cells:
+        recommended_actions_list.append("Review missing values before interpreting affected fields.")
+    if duplicate_rows:
+        recommended_actions_list.append("Review exact duplicate rows and remove them if they are not intentional.")
+    if inconsistent_columns:
+        recommended_actions_list.append("Standardise case-only text variants where they represent the same business value.")
+    if outlier_columns:
+        recommended_actions_list.append("Validate statistical outliers against source records before excluding them.")
+    if date_issue_columns:
+        recommended_actions_list.append("Standardise mixed date formats to YYYY-MM-DD.")
+    if not recommended_actions_list:
+        recommended_actions_list.append("No immediate quality fixes are required; continue to analysis.")
 
     return {
         "rows": rows_before,
@@ -151,6 +291,17 @@ def analyse_cleaning(frame: pl.DataFrame) -> dict[str, Any]:
         "issue_count": issue_count,
         "completeness_percent": completeness,
         "quality_score": quality_score,
+        "affected_rows": affected_rows,
+        "columns_with_issues": len(columns_with_issues),
+        "missing_by_column": missing_by_column,
+        "missing_preview": missing_preview,
+        "duplicate_preview": duplicate_preview,
+        "inconsistent_columns": inconsistent_columns,
+        "outlier_columns": outlier_columns,
+        "outlier_preview": outlier_preview,
+        "issue_breakdown": issue_breakdown,
+        "validation_checks": validation_checks,
+        "recommended_actions_list": recommended_actions_list,
         "recommended_actions": {
             "remove_duplicates": duplicate_rows > 0,
             "remove_blank_rows": blank_rows > 0,

@@ -1,7 +1,10 @@
 "use client";
 
+import { apiFetch } from "../lib/api";
+
 import { ChangeEvent, useMemo, useRef, useState } from "react";
 import { ToolPdfReport, ToolPdfSection, printToolReport } from "../components/tool-report";
+import { PORTFOLIO_URL, SUPPORT_URL } from "../lib/config";
 
 type WorkbookSheet = { index: number; name: string; rows: number; columns: number; analysis_ready: boolean; classification: string; recommended: boolean; };
 type WorkbookInfo = { filename: string; file_size_bytes: number; sheet_count: number; recommended_sheet?: string | null; sheets: WorkbookSheet[]; };
@@ -31,8 +34,6 @@ type ScenarioResult = {
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
-const PORTFOLIO_URL = "https://syedazhan.netlify.app/";
-const SUPPORT_URL = process.env.NEXT_PUBLIC_SUPPORT_URL ?? "";
 const MAX_BYTES = 20 * 1024 * 1024;
 
 function formatNumber(value: number, digits = 0) { return new Intl.NumberFormat("en-AU", { maximumFractionDigits: digits }).format(value); }
@@ -96,7 +97,7 @@ export default function ScenarioPage() {
 
   async function inspectWorkbook(selectedFile: File) {
     const form = new FormData(); form.append("file", selectedFile);
-    const response = await fetch(`${API_URL}/api/datasets/workbook`, { method: "POST", body: form });
+    const response = await apiFetch(`${API_URL}/api/datasets/workbook`, { method: "POST", body: form });
     if (!response.ok) throw new Error(await responseError(response));
     const body = await response.json(); return body.workbook as WorkbookInfo;
   }
@@ -105,7 +106,7 @@ export default function ScenarioPage() {
     setLoading(true); setError(""); setPreparation(null); setResult(null);
     try {
       const form = new FormData(); form.append("file", selectedFile); if (selectedSheet) form.append("sheet_name", selectedSheet);
-      const response = await fetch(`${API_URL}/api/datasets/scenario/prepare`, { method: "POST", body: form });
+      const response = await apiFetch(`${API_URL}/api/datasets/scenario/prepare`, { method: "POST", body: form });
       if (!response.ok) throw new Error(await responseError(response));
       const body = await response.json() as ScenarioPreparation;
       setPreparation(body);
@@ -145,7 +146,7 @@ export default function ScenarioPage() {
       form.append("upside_a", String(upsideA)); form.append("upside_b", String(needsMetricB ? upsideB : 0));
       form.append("downside_a", String(downsideA)); form.append("downside_b", String(needsMetricB ? downsideB : 0));
       if (dimension) form.append("dimension", dimension); if (sheetName) form.append("sheet_name", sheetName);
-      const response = await fetch(`${API_URL}/api/datasets/scenario`, { method: "POST", body: form });
+      const response = await apiFetch(`${API_URL}/api/datasets/scenario`, { method: "POST", body: form });
       if (!response.ok) throw new Error(await responseError(response));
       setResult(await response.json() as ScenarioResult);
     } catch (err) { setError(err instanceof Error ? err.message : "Unable to run this scenario."); }
@@ -262,7 +263,7 @@ export default function ScenarioPage() {
         </ToolPdfReport>
       </>}
 
-      <section className="supportLanding" id="support"><div><span className="panelKicker">INDEPENDENTLY BUILT</span><strong>Did Azhan Data Studio save you time?</strong><p>The studio stays free to use. If it helped you analyse, compare, forecast or model a decision, you can support continued development with a one-time contribution.</p></div>{SUPPORT_URL ? <a className="supportPrimaryButton" href={SUPPORT_URL} target="_blank" rel="noreferrer">☕ Support development</a> : <span className="supportPending">Stripe support link coming soon</span>}</section>
+      <section className="supportLanding" id="support"><div><span className="panelKicker">INDEPENDENTLY BUILT</span><strong>Did Azhan Data Studio save you time?</strong><p>The studio stays free to use. If it helped you analyse, compare, forecast or model a decision, you can support continued development with a one-time contribution.</p></div>{SUPPORT_URL ? <a className="supportPrimaryButton" href={SUPPORT_URL} target="_blank" rel="noreferrer">☕ Support development</a> : <span className="supportPending">Data Studio support link not configured</span>}</section>
     </section>
   </main>;
 }

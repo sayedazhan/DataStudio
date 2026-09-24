@@ -62,7 +62,7 @@ Upload CSV/XLSX data and validate analytical patterns with transparent statistic
 - deterministic analytics (no LLM used for calculations)
 - branded Print / Save PDF reports across all six tools, including the Monthly Executive report
 - ranked insights CSV export
-- optional Stripe support link via `NEXT_PUBLIC_SUPPORT_URL`
+- consistent one-time Stripe support checkout, centralised in `frontend/app/lib/config.ts`
 
 ## Architecture
 - Frontend: Next.js / React / TypeScript
@@ -110,3 +110,40 @@ A new `/clean` utility scans CSV/XLSX datasets for common data-quality issues an
 ### Clean My Data v1.0.2
 - Fixed XLSX workbook metadata parsing for `/api/datasets/workbook` response shape (`{ workbook: ... }`).
 - Added defensive sheet-array validation to avoid runtime crashes if workbook metadata is malformed.
+
+## SEO foundation (v3.4)
+
+The frontend now includes canonical metadata, Open Graph/Twitter sharing metadata, JSON-LD structured data, a generated sitemap, robots rules and route-specific metadata for the public analysis tools. See `SEO-FOUNDATION-V3.4.md` for production configuration and Search Console steps.
+## SEO content & support checkout (v3.5)
+
+The SEO foundation now includes four indexable, internally linked feature pages:
+- `/features/csv-excel-analysis`
+- `/features/data-quality-checker`
+- `/features/compare-excel-files`
+- `/features/data-forecasting`
+
+All Support buttons now use one canonical Stripe Payment Link defined in `frontend/app/lib/config.ts`, avoiding different or stale checkout links across pages. See `SEO-CONTENT-STRIPE-V3.5.md`.
+
+
+## Stripe support link (v3.5.2)
+The confirmed Azhan Data Studio Stripe support link is now configured centrally in `frontend/app/lib/config.ts` and in the environment examples:
+`https://buy.stripe.com/3cIcN514E65u8MnaKAdjO00`
+
+## Launch readiness + SEO (v3.6)
+
+v3.6 prepares the public product for deployment with:
+- Privacy & Data Handling and Terms & Disclaimer pages
+- Try Sample Data on the main analysis landing page
+- friendlier analysis-service connection errors
+- basic public API request limiting
+- a crawlable `/features` hub and stronger internal linking
+- updated sitemap/robots/canonical/social metadata coverage
+- visible homepage and feature FAQs
+- current structured data (`WebSite`, `SoftwareApplication`, `WebPage`, `BreadcrumbList`) rather than discontinued Google FAQ rich-result markup
+- custom 404/error experiences and baseline security headers
+
+See `LAUNCH-READINESS-SEO-V3.6.md` for the production checklist.
+
+## Domain-ready release (v3.6.1)
+
+v3.6.1 sets `https://azhandatastudio.com` as the production SEO/canonical domain and prepares the existing GitHub/Netlify deployment for custom-domain cutover. See `DOMAIN-READY-V3.6.1.md`.

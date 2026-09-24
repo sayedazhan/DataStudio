@@ -1,7 +1,10 @@
 "use client";
 
+import { apiFetch } from "../lib/api";
+
 import { ChangeEvent, useMemo, useRef, useState } from "react";
 import { ToolPdfReport, ToolPdfSection, printToolReport } from "../components/tool-report";
+import { PORTFOLIO_URL, SUPPORT_URL } from "../lib/config";
 
 type WorkbookSheet = {
   index: number;
@@ -173,8 +176,6 @@ type CompareResult = {
 type RecordTab = "modified" | "added" | "removed";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
-const PORTFOLIO_URL = "https://syedazhan.netlify.app/";
-const SUPPORT_URL = process.env.NEXT_PUBLIC_SUPPORT_URL ?? "";
 const COMPARE_MAX_BYTES = 20 * 1024 * 1024;
 
 function formatNumber(value: number) {
@@ -327,7 +328,7 @@ export default function ComparePage() {
     const body = new FormData();
     body.append("file", file);
     try {
-      const response = await fetch(`${API_URL}/api/datasets/workbook`, { method: "POST", body });
+      const response = await apiFetch(`${API_URL}/api/datasets/workbook`, { method: "POST", body });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.detail ?? "Unable to inspect workbook.");
       const workbook = payload.workbook as WorkbookInfo;
@@ -386,7 +387,7 @@ export default function ComparePage() {
     try {
       const body = new FormData();
       appendFiles(body);
-      const response = await fetch(`${API_URL}/api/datasets/compare/prepare`, { method: "POST", body });
+      const response = await apiFetch(`${API_URL}/api/datasets/compare/prepare`, { method: "POST", body });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.detail ?? "Unable to prepare this comparison.");
       const typed = payload as ComparePreparation;
@@ -409,7 +410,7 @@ export default function ComparePage() {
       const body = new FormData();
       appendFiles(body);
       body.append("key", selectedKey);
-      const response = await fetch(`${API_URL}/api/datasets/compare`, { method: "POST", body });
+      const response = await apiFetch(`${API_URL}/api/datasets/compare`, { method: "POST", body });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.detail ?? "Unable to compare these datasets.");
       const typed = payload as CompareResult;
@@ -724,8 +725,8 @@ export default function ComparePage() {
             <section className="panel supportPanel" id="support">
               <div className="supportPanelCopy"><span className="panelKicker">INDEPENDENTLY BUILT</span><h3>Did Dataset Compare save you time?</h3><p>Azhan Data Studio stays free to use. If this comparison helped you, you can support continued development with a one-time contribution.</p></div>
               <div className="supportPanelAction">
-                {SUPPORT_URL ? <a className="supportPrimaryButton" href={SUPPORT_URL} target="_blank" rel="noreferrer">☕ Support development</a> : <span className="supportPending">Stripe support link coming soon</span>}
-                <small>{SUPPORT_URL ? "Optional · secure checkout handled by Stripe" : "Add NEXT_PUBLIC_SUPPORT_URL to activate checkout"}</small>
+                {SUPPORT_URL ? <a className="supportPrimaryButton" href={SUPPORT_URL} target="_blank" rel="noreferrer">☕ Support development</a> : <span className="supportPending">Data Studio support link not configured</span>}
+                <small>{SUPPORT_URL ? "Optional · secure checkout handled by Stripe" : "Configure NEXT_PUBLIC_DATA_STUDIO_SUPPORT_URL to enable checkout"}</small>
               </div>
             </section>
 
@@ -774,7 +775,7 @@ export default function ComparePage() {
         )}
       </section>
 
-      <footer className="siteFooter"><strong>Azhan Data Studio</strong><span>Created by Azhan Hassan · Data &amp; AI Automation Specialist</span><a href={PORTFOLIO_URL} target="_blank" rel="noreferrer">View Portfolio ↗</a><a className="footerSupport" href={SUPPORT_URL || "#support"} target={SUPPORT_URL ? "_blank" : undefined} rel={SUPPORT_URL ? "noreferrer" : undefined}>☕ Support the project</a></footer>
+      <footer className="siteFooter"><strong>Azhan Data Studio</strong><span>Created by Azhan Hassan · Data &amp; AI Automation Specialist</span><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href={PORTFOLIO_URL} target="_blank" rel="noreferrer">View Portfolio ↗</a><a className="footerSupport" href={SUPPORT_URL || "#support"} target={SUPPORT_URL ? "_blank" : undefined} rel={SUPPORT_URL ? "noreferrer" : undefined}>☕ Support the project</a></footer>
     </main>
   );
 }

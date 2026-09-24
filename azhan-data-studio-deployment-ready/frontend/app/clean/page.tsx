@@ -1,10 +1,11 @@
 "use client";
 
+import { apiFetch } from "../lib/api";
+
 import { ChangeEvent, DragEvent, useRef, useState } from "react";
+import { PORTFOLIO_URL, SUPPORT_URL } from "../lib/config";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
-const PORTFOLIO_URL = "https://syedazhan.netlify.app/";
-const SUPPORT_URL = process.env.NEXT_PUBLIC_SUPPORT_URL ?? "";
 const MAX_BYTES = 50 * 1024 * 1024;
 
 type WorkbookSheet = { index:number; name:string; rows:number; columns:number; analysis_ready:boolean; classification:string; recommended:boolean };
@@ -49,7 +50,7 @@ export default function CleanMyDataPage(){
       setLoading(true);
       try{
         const fd=new FormData(); fd.append("file",next);
-        const r=await fetch(`${API_URL}/api/datasets/workbook`,{method:"POST",body:fd});
+        const r=await apiFetch(`${API_URL}/api/datasets/workbook`,{method:"POST",body:fd});
         if(!r.ok) throw new Error((await r.json()).detail||"Unable to inspect workbook.");
         const body=await r.json() as { workbook?: WorkbookInfo } | WorkbookInfo;
         const data=("workbook" in body && body.workbook ? body.workbook : body) as WorkbookInfo;
@@ -65,7 +66,7 @@ export default function CleanMyDataPage(){
     if(!file)return; setLoading(true); setError(""); setPrep(null);
     try{
       const fd=new FormData(); fd.append("file",file); if(sheet)fd.append("sheet_name",sheet);
-      const r=await fetch(`${API_URL}/api/datasets/clean/prepare`,{method:"POST",body:fd});
+      const r=await apiFetch(`${API_URL}/api/datasets/clean/prepare`,{method:"POST",body:fd});
       if(!r.ok) throw new Error((await r.json()).detail||"Unable to scan dataset.");
       setPrep(await r.json());
     }catch(e){setError(e instanceof Error?e.message:"Unable to scan dataset.")}
@@ -77,7 +78,7 @@ export default function CleanMyDataPage(){
     try{
       const fd=new FormData(); fd.append("file",file); if(sheet)fd.append("sheet_name",sheet);
       Object.entries(options).forEach(([k,v])=>fd.append(k,String(v))); fd.append("output_format",outputFormat);
-      const r=await fetch(`${API_URL}/api/datasets/clean`,{method:"POST",body:fd});
+      const r=await apiFetch(`${API_URL}/api/datasets/clean`,{method:"POST",body:fd});
       if(!r.ok){let msg="Unable to clean dataset."; try{msg=(await r.json()).detail||msg}catch{} throw new Error(msg)}
       const blob=await r.blob();
       const cd=r.headers.get("content-disposition")||""; const m=cd.match(/filename="?([^\"]+)"?/i); const name=m?.[1]||`cleaned_data.${outputFormat}`;
@@ -135,7 +136,7 @@ export default function CleanMyDataPage(){
         <section className="cleanPreview"><div><span className="panelKicker">SOURCE PREVIEW</span><h2>First {Math.min(prep?.preview.length||0,8)} rows</h2></div>{prep&&prep.preview.length>0&&<div className="cleanTableWrap"><table><thead><tr>{Object.keys(prep.preview[0]).map(k=><th key={k}>{k}</th>)}</tr></thead><tbody>{prep.preview.map((row,i)=><tr key={i}>{Object.keys(prep.preview[0]).map(k=><td key={k}>{String(row[k]??"—")}</td>)}</tr>)}</tbody></table></div>}</section>
       </>}
     </section>
-    <footer className="siteFooter"><strong>Azhan Data Studio</strong><span>Created by Azhan Hassan · Data &amp; AI Automation Specialist</span><a href={PORTFOLIO_URL} target="_blank" rel="noreferrer">View Portfolio ↗</a></footer>
+    <footer className="siteFooter"><strong>Azhan Data Studio</strong><span>Created by Azhan Hassan · Data &amp; AI Automation Specialist</span><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href={PORTFOLIO_URL} target="_blank" rel="noreferrer">View Portfolio ↗</a></footer>
   </main>
 }
 

@@ -1,11 +1,12 @@
 "use client";
 
+import { apiFetch } from "../lib/api";
+
 import { ChangeEvent, DragEvent, useEffect, useMemo, useRef, useState } from "react";
 import { ToolPdfReport, ToolPdfSection, printToolReport } from "../components/tool-report";
+import { PORTFOLIO_URL, SUPPORT_URL } from "../lib/config";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
-const PORTFOLIO_URL = "https://syedazhan.netlify.app/";
-const SUPPORT_URL = process.env.NEXT_PUBLIC_SUPPORT_URL ?? "";
 const MAX_FILE_BYTES = 20 * 1024 * 1024;
 const DB_NAME = "azhan-data-studio-v3";
 const DB_VERSION = 1;
@@ -530,7 +531,7 @@ export default function MonthlyPage() {
     try {
       const form = new FormData();
       appendFiles(form, files);
-      const response = await fetch(`${API_URL}/api/datasets/monthly/prepare`, { method: "POST", body: form });
+      const response = await apiFetch(`${API_URL}/api/datasets/monthly/prepare`, { method: "POST", body: form });
       if (!response.ok) throw new Error(await responseError(response));
       const body = await response.json() as MonthlyPreparation;
       setPreparation(body);
@@ -574,7 +575,7 @@ export default function MonthlyPage() {
       form.append("alert_direction", alertDirection);
       if (targetValue.trim() !== "" && Number.isFinite(Number(targetValue))) form.append("target_value", targetValue.trim());
       form.append("target_condition", targetCondition);
-      const response = await fetch(`${API_URL}/api/datasets/monthly/analyse`, { method: "POST", body: form });
+      const response = await apiFetch(`${API_URL}/api/datasets/monthly/analyse`, { method: "POST", body: form });
       if (!response.ok) throw new Error(await responseError(response));
       const body = await response.json() as MonthlyResult;
       setResult(body);
@@ -731,7 +732,7 @@ export default function MonthlyPage() {
         </>}
       </section>
 
-      <footer className="siteFooter"><strong>Azhan Data Studio</strong><span>Created by Azhan Hassan · Data &amp; AI Automation Specialist</span><a href={PORTFOLIO_URL} target="_blank" rel="noreferrer">View Portfolio ↗</a><a className="footerSupport" href={SUPPORT_URL || "#support"} target={SUPPORT_URL ? "_blank" : undefined} rel={SUPPORT_URL ? "noreferrer" : undefined}>☕ Support the project</a></footer>
+      <footer className="siteFooter"><strong>Azhan Data Studio</strong><span>Created by Azhan Hassan · Data &amp; AI Automation Specialist</span><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href={PORTFOLIO_URL} target="_blank" rel="noreferrer">View Portfolio ↗</a><a className="footerSupport" href={SUPPORT_URL || "#support"} target={SUPPORT_URL ? "_blank" : undefined} rel={SUPPORT_URL ? "noreferrer" : undefined}>☕ Support the project</a></footer>
     </main>
   );
 }

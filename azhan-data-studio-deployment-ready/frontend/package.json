@@ -1,6 +1,6 @@
 {
   "name": "azhan-data-studio-frontend",
-  "version": "1.0.0",
+  "version": "3.6.1",
   "private": true,
   "scripts": {
     "dev": "next dev",

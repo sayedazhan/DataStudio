@@ -1,6 +1,8 @@
 "use client";
 
 import { ChangeEvent, DragEvent, useEffect, useMemo, useRef, useState } from "react";
+import { PORTFOLIO_URL, SUPPORT_URL } from "./lib/config";
+import { apiFetch } from "./lib/api";
 
 type TopValue = {
   value: string;
@@ -180,6 +182,20 @@ type InspectionResult = {
     missing_values: number;
     duplicate_rows: number;
     completeness_percent: number;
+    quality_score: number;
+    issue_count: number;
+    affected_rows: number;
+    columns_with_issues: number;
+    issue_breakdown: Record<"missing_values" | "duplicates" | "inconsistent_data" | "outliers" | "invalid_format", number>;
+    missing_by_column: Array<{ column: string; count: number; percent: number }>;
+    missing_preview: Array<Record<string, unknown>>;
+    duplicate_preview: Array<Record<string, unknown>>;
+    inconsistent_columns: Array<{ column: string; variant_groups: number; examples: string[][] }>;
+    date_issue_columns: Array<{ column: string; parseable_percent: number; target_format: string }>;
+    outlier_columns: Array<{ column: string; count: number; percent: number; lower_fence: number; upper_fence: number; examples: number[] }>;
+    outlier_preview: Array<Record<string, unknown>>;
+    validation_checks: Array<{ label: string; status: "pass" | "warn" }>;
+    recommended_actions: string[];
   };
   understanding: {
     role_counts: Record<string, number>;
@@ -214,8 +230,7 @@ type WorkbookInfo = {
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
-const PORTFOLIO_URL = "https://syedazhan.netlify.app/";
-const SUPPORT_URL = process.env.NEXT_PUBLIC_SUPPORT_URL ?? "";
+const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat("en-AU").format(value);
@@ -839,6 +854,7 @@ function profileMetrics(field: SchemaField): ProfileMetric[] {
 
 
 type WorkspaceTab = "overview" | "insights" | "explore" | "reports" | "quality" | "fields";
+type QualitySubTab = "overview" | "missing" | "duplicates" | "inconsistent" | "outliers" | "preview";
 
 export default function Home() {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -849,6 +865,7 @@ export default function Home() {
   const [insightFilter, setInsightFilter] = useState("all");
   const [visualFilter, setVisualFilter] = useState("all");
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("overview");
+  const [qualitySubTab, setQualitySubTab] = useState<QualitySubTab>("overview");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingWorkbook, setLoadingWorkbook] = useState(false);
@@ -900,6 +917,16 @@ export default function Home() {
     return result.schema.filter((field) => field.semantic_role === "time" && (field.profile.earliest || field.profile.latest));
   }, [result]);
   const advancedQualityFlagCount = useMemo(() => highMissingFields.length + identifierIssues.length + outlierFields.length, [highMissingFields, identifierIssues, outlierFields]);
+  const qualityColumnIssues = useMemo(() => {
+    if (!result) return [] as Array<{ column: string; count: number }>;
+    const counts = new Map<string, number>();
+    const add = (column: string, value: number) => counts.set(column, (counts.get(column) ?? 0) + value);
+    result.quality.missing_by_column.forEach((item) => add(item.column, item.count));
+    result.quality.outlier_columns.forEach((item) => add(item.column, item.count));
+    result.quality.inconsistent_columns.forEach((item) => add(item.column, item.variant_groups));
+    result.quality.date_issue_columns.forEach((item) => add(item.column, 1));
+    return [...counts.entries()].map(([column, count]) => ({ column, count })).sort((a, b) => b.count - a.count);
+  }, [result]);
 
   function resetForNewFile() {
     setResult(null);
@@ -908,6 +935,7 @@ export default function Home() {
     setInsightFilter("all");
     setVisualFilter("all");
     setActiveTab("overview");
+    setQualitySubTab("overview");
     setReportGeneratedAt("");
     setExportNotice("");
     setAnalysisNotice("");
@@ -932,7 +960,7 @@ export default function Home() {
     const body = new FormData();
     body.append("file", selected);
     try {
-      const response = await fetch(`${API_URL}/api/datasets/workbook`, { method: "POST", body });
+      const response = await apiFetch(`${API_URL}/api/datasets/workbook`, { method: "POST", body });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.detail ?? "Unable to inspect this workbook.");
       const workbook = payload.workbook as WorkbookInfo;
@@ -950,6 +978,12 @@ export default function Home() {
   async function chooseFile(selected?: File) {
     if (!selected) return;
     const extension = selected.name.split(".").pop()?.toLowerCase();
+    if (selected.size > MAX_UPLOAD_BYTES) {
+      setFile(null);
+      resetForNewFile();
+      setError("This file is larger than the 50 MB limit for Analyse Data. Please use a smaller extract or split the file first.");
+      return;
+    }
     if (!extension || !["csv", "xlsx"].includes(extension)) {
       setFile(null);
       resetForNewFile();
@@ -998,6 +1032,20 @@ export default function Home() {
     };
   }, []);
 
+  async function loadSampleData() {
+    setError("");
+    try {
+      const response = await apiFetch("/sample-data.csv", { cache: "no-store" });
+      if (!response.ok) throw new Error("The sample dataset could not be loaded.");
+      const blob = await response.blob();
+      const sample = new File([blob], "azhan-data-studio-sample.csv", { type: "text/csv" });
+      await chooseFile(sample);
+      window.setTimeout(() => document.querySelector(".heroActionCard")?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "The sample dataset could not be loaded.");
+    }
+  }
+
   async function inspect(options: { preserveResult?: boolean } = {}) {
     if (!file) {
       setError("Choose a CSV or Excel (.xlsx) file before analysing.");
@@ -1015,7 +1063,7 @@ export default function Home() {
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/datasets/inspect`, { method: "POST", body });
+      const response = await apiFetch(`${API_URL}/api/datasets/inspect`, { method: "POST", body });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.detail ?? "Unable to inspect this dataset.");
 
@@ -1231,7 +1279,8 @@ export default function Home() {
               <button className="primaryButton heroPrimaryButton" disabled={!file || loading || loadingWorkbook || (file?.name.toLowerCase().endsWith(".xlsx") && !selectedSheet)} onClick={() => void inspect()}>
                 {loading ? "Analysing dataset…" : loadingWorkbook ? "Reading workbook…" : file?.name.toLowerCase().endsWith(".xlsx") && selectedSheet ? `Analyse ${selectedSheet}` : "Analyse my data"}
               </button>
-              <div className="heroTrustLine"><span>CSV / XLSX only</span><span>Deterministic analytics</span><span>No dashboard setup</span><span>No AI assistant required</span></div>
+              <button className="sampleDataButton" type="button" disabled={loading || loadingWorkbook} onClick={() => void loadSampleData()}>Try sample data instead →</button>
+              <div className="heroTrustLine"><span>CSV / XLSX only</span><span>Deterministic analytics</span><span>No dashboard setup</span><span>Uploads not persistently stored · <a href="/privacy">Privacy</a></span></div>
               <div className="heroOutputRow" aria-label="Analysis workflow">
                 <span><b>01</b><small>Profile</small></span>
                 <i>→</i>
@@ -1252,9 +1301,36 @@ export default function Home() {
             <div><strong>04</strong><span><b>Take the analysis with you</b><small>Visual discovery, CSV exports and branded PDF reports</small></span></div>
           </div>
 
+          <section className="seoDiscoverySection" id="toolkit" aria-labelledby="seo-discovery-heading">
+            <div className="seoDiscoveryHeading">
+              <div><span className="panelKicker">EXPLORE THE TOOLKIT</span><h2 id="seo-discovery-heading">Practical tools for everyday data work</h2></div>
+              <div className="seoDiscoveryIntro"><p>Learn how each workflow helps with analysis, data quality, dataset comparison and forecasting before opening the tool.</p><a className="seoToolkitLink" href="/features">View all feature guides →</a></div>
+            </div>
+            <div className="seoDiscoveryGrid">
+              <a className="seoDiscoveryCard" href="/features/csv-excel-analysis"><span>ANALYSE</span><strong>CSV & Excel Data Analysis</strong><small>Automatic profiling, ranked insights and visual discovery.</small></a>
+              <a className="seoDiscoveryCard" href="/features/data-quality-checker"><span>CHECK</span><strong>Data Quality Checker</strong><small>Missing values, duplicates, inconsistencies and outlier evidence.</small></a>
+              <a className="seoDiscoveryCard" href="/features/compare-excel-files"><span>COMPARE</span><strong>Compare Excel & CSV Files</strong><small>Understand structure, record and metric changes between datasets.</small></a>
+              <a className="seoDiscoveryCard" href="/features/data-forecasting"><span>FORECAST</span><strong>Data Forecasting Tool</strong><small>Project historical metrics into future periods with uncertainty ranges.</small></a>
+            </div>
+          </section>
+
+          <section className="homeFaqSection" aria-labelledby="home-faq-heading">
+            <div className="seoDiscoveryHeading">
+              <div><span className="panelKicker">COMMON QUESTIONS</span><h2 id="home-faq-heading">Before you upload a file</h2></div>
+              <p>Quick answers about supported files, privacy, data quality and how the analysis works.</p>
+            </div>
+            <div className="seoFaqList">
+              <details><summary>What files can Azhan Data Studio analyse?</summary><p>CSV and Excel .xlsx files are supported. The main analysis workspace accepts files up to 50 MB, while specialised tools can use lower limits for faster processing.</p></details>
+              <details><summary>Are my uploaded files stored?</summary><p>The analysis backend processes uploaded files in memory and the application does not write them to persistent server storage. Monthly Intelligence can keep files in your own browser storage so you can reuse them locally between sessions.</p></details>
+              <details><summary>Does the analysis send my dataset to an AI model?</summary><p>No. The current analysis engine uses deterministic profiling, statistical checks and rule-based analytics. Uploaded dataset contents are not sent to an LLM by Azhan Data Studio.</p></details>
+              <details><summary>Is Azhan Data Studio free?</summary><p>Yes. The studio is free to use. A separate Stripe support link is available for users who want to make an optional one-time contribution to continued development.</p></details>
+              <details><summary>Should I treat forecasts or statistical outputs as professional advice?</summary><p>No. Outputs are analytical aids based on the data and method selected. Review the evidence and assumptions before using results for business, financial or other important decisions.</p></details>
+            </div>
+          </section>
+
           <section className="supportLanding" id="support">
             <div><span className="panelKicker">SUPPORT THE PROJECT</span><strong>Azhan Data Studio is independently built and free to use.</strong><p>If it saves you time, you can support continued development with a one-time contribution.</p></div>
-            {SUPPORT_URL ? <a className="supportPrimaryButton" href={SUPPORT_URL} target="_blank" rel="noreferrer">☕ Support Azhan Data Studio</a> : <span className="supportPending">Stripe support link coming soon</span>}
+            {SUPPORT_URL ? <a className="supportPrimaryButton" href={SUPPORT_URL} target="_blank" rel="noreferrer">☕ Support Azhan Data Studio</a> : <span className="supportPending">Data Studio support link not configured</span>}
           </section>
         </section>
       ) : (
@@ -1290,10 +1366,10 @@ export default function Home() {
           <nav className="workspaceNav" aria-label="Azhan Data Studio workspace">
             {([
               ["overview", "Overview"],
+              ["quality", "Data Quality"],
               ["insights", "Insights"],
               ["explore", "Explore"],
               ["reports", "Reports"],
-              ["quality", "Data Quality"],
               ["fields", "Fields"],
             ] as Array<[WorkspaceTab, string]>).map(([tab, label]) => (
               <button key={tab} className={activeTab === tab ? "active" : ""} onClick={() => setActiveTab(tab)}>{label}</button>
@@ -1359,13 +1435,22 @@ export default function Home() {
                   </section>
                 </div>
 
-                <section className="panel qualityStripPanel">
-                  <div className="panelHeader compactHeader"><div><span className="panelKicker">DATA HEALTH</span><h3>Quality snapshot</h3></div><button className="textButton" onClick={() => setActiveTab("quality")}>View details →</button></div>
-                  <div className="qualityStrip">
-                    <Metric label="Completeness" value={`${result.quality.completeness_percent}%`} />
-                    <Metric label="Missing values" value={formatNumber(result.quality.missing_values)} />
-                    <Metric label="Duplicate rows" value={formatNumber(result.quality.duplicate_rows)} />
-                    <Metric label="Fields with gaps" value={formatNumber(missingFields.length)} />
+                <section className="panel qualityStripPanel overviewQualityPanel">
+                  <div className="panelHeader compactHeader"><div><span className="panelKicker">DATA HEALTH</span><h3>Quality snapshot</h3></div><button className="textButton" onClick={() => setActiveTab("quality")}>Open Data Quality Centre →</button></div>
+                  <div className="overviewQualityGrid">
+                    <button className="overviewQualityScoreCard" onClick={() => setActiveTab("quality")} aria-label={`Open Data Quality Centre. Current score ${formatDecimal(result.quality.quality_score, 0)} out of 100`}>
+                      <span className="overviewQualityScoreEyebrow">DATA QUALITY SCORE</span>
+                      <div className="overviewQualityScoreValue"><strong>{formatDecimal(result.quality.quality_score, 0)}</strong><span>/100</span></div>
+                      <div className="overviewQualityScoreTrack"><i style={{ width: `${Math.max(0, Math.min(100, result.quality.quality_score))}%` }} /></div>
+                      <p>{result.quality.quality_score >= 90 ? "Strong quality. Only minor review may be needed." : result.quality.quality_score >= 75 ? "Good quality. Review the flagged issues before relying on the analysis." : "Quality issues should be reviewed before using the results for decisions."}</p>
+                      <span className="overviewQualityScoreAction">Review data quality →</span>
+                    </button>
+                    <div className="qualityStrip overviewQualitySupportingMetrics">
+                      <Metric label="Completeness" value={`${result.quality.completeness_percent}%`} />
+                      <Metric label="Missing values" value={formatNumber(result.quality.missing_values)} />
+                      <Metric label="Duplicate rows" value={formatNumber(result.quality.duplicate_rows)} />
+                      <Metric label="Fields with gaps" value={formatNumber(missingFields.length)} />
+                    </div>
                   </div>
                 </section>
 
@@ -1376,8 +1461,8 @@ export default function Home() {
                     <p>The studio stays free to use. If it helped you find something useful in your data, you can support continued development with a one-time contribution.</p>
                   </div>
                   <div className="supportPanelAction">
-                    {SUPPORT_URL ? <a className="supportPrimaryButton" href={SUPPORT_URL} target="_blank" rel="noreferrer">☕ Support development</a> : <span className="supportPending">Stripe support link coming soon</span>}
-                    <small>{SUPPORT_URL ? "Optional · secure checkout handled by Stripe" : "Add NEXT_PUBLIC_SUPPORT_URL to activate checkout"}</small>
+                    {SUPPORT_URL ? <a className="supportPrimaryButton" href={SUPPORT_URL} target="_blank" rel="noreferrer">☕ Support development</a> : <span className="supportPending">Data Studio support link not configured</span>}
+                    <small>{SUPPORT_URL ? "Optional · secure checkout handled by Stripe" : "Configure NEXT_PUBLIC_DATA_STUDIO_SUPPORT_URL to enable checkout"}</small>
                   </div>
                 </section>
               </div>
@@ -1611,52 +1696,108 @@ export default function Home() {
             )}
 
             {activeTab === "quality" && (
-              <div className="tabPage">
-                <div className="pageHeading"><div><span className="panelKicker">DATA HEALTH · V3.0</span><h2>Data Quality Centre</h2><p>Check completeness, duplicates, identifier integrity, statistical outliers and time coverage before relying on the analysis.</p></div></div>
-                <div className="metricsGrid">
-                  <Metric label="Completeness" value={`${result.quality.completeness_percent}%`} />
-                  <Metric label="Missing values" value={formatNumber(result.quality.missing_values)} />
-                  <Metric label="Duplicate rows" value={formatNumber(result.quality.duplicate_rows)} />
-                  <Metric label="Fields with gaps" value={formatNumber(missingFields.length)} />
-                </div>
-                <section className="panel qualityPanel">
-                  <div className="panelHeader compactHeader"><div><span className="panelKicker">MISSINGNESS BY FIELD</span><h3>Where the gaps are</h3></div></div>
-                  {missingFields.length ? (
-                    <div className="qualityFieldList">
-                      {missingFields.map((field) => (
-                        <div className="qualityFieldRow" key={field.name}>
-                          <div className="qualityFieldMeta"><strong>{field.name}</strong><span>{formatNumber(field.missing_count)} missing · {formatPercent(field.missing_percent)}</span></div>
-                          <div className="qualityTrack"><span style={{ width: `${Math.min(100, field.missing_percent)}%` }} /></div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : <div className="emptyState">No missing values were detected.</div>}
-                </section>
-
-                <div className="qualitySignalGrid">
-                  <div className={`qualitySignalCard ${highMissingFields.length ? "warn" : "good"}`}><span>HIGH MISSINGNESS</span><strong>{formatNumber(highMissingFields.length)}</strong><small>{highMissingFields.length ? "field(s) are 20%+ incomplete" : "No field is 20%+ incomplete"}</small></div>
-                  <div className={`qualitySignalCard ${identifierIssues.length ? "warn" : "good"}`}><span>IDENTIFIER REPEATS</span><strong>{formatNumber(identifierIssues.reduce((sum, field) => sum + (field.profile.repeated_value_count ?? 0), 0))}</strong><small>{identifierIssues.length ? `${identifierIssues.length} identifier field(s) need review` : "No repeated values in detected identifiers"}</small></div>
-                  <div className={`qualitySignalCard ${outlierFields.length ? "review" : "good"}`}><span>IQR OUTLIER FLAGS</span><strong>{formatNumber(outlierFields.reduce((sum, field) => sum + (field.profile.outlier_count_iqr ?? 0), 0))}</strong><small>{outlierFields.length ? `${outlierFields.length} numeric field(s) contain statistical outliers` : "No IQR outliers were flagged"}</small></div>
-                  <div className="qualitySignalCard"><span>TIME COVERAGE</span><strong>{formatNumber(timeFields.length)}</strong><small>{timeFields.length ? "date/time field(s) profiled" : "No date/time coverage detected"}</small></div>
+              <div className="tabPage qualityCentrePage">
+                <div className="pageHeading qualityCentreHeading">
+                  <div>
+                    <span className="panelKicker">DATA HEALTH · INTELLIGENCE LAYER</span>
+                    <h2>Data Quality Centre</h2>
+                    <p>Review completeness, duplicates, inconsistent text, statistical outliers and affected records before relying on the analysis.</p>
+                  </div>
+                  <div className="qualityDatasetBadge"><span>CURRENT DATASET</span><strong>{result.dataset.filename}</strong><small>{formatNumber(result.dataset.rows)} rows · {formatNumber(result.dataset.columns)} columns{result.dataset.sheet_name ? ` · ${result.dataset.sheet_name}` : ""}</small></div>
                 </div>
 
-                {(advancedQualityFlagCount > 0 || timeFields.length > 0) && (
-                  <div className="qualityDetailGrid">
-                    <section className="panel">
-                      <div className="panelHeader compactHeader"><div><span className="panelKicker">ADVANCED CHECKS</span><h3>Fields worth reviewing</h3></div></div>
-                      <div className="qualityIssueList">
-                        {highMissingFields.slice(0, 5).map((field) => <div key={`qm-${field.name}`}><span className="qualityIssueIcon warn">!</span><p><strong>{field.name}</strong>{formatPercent(field.missing_percent)} missing · {formatNumber(field.missing_count)} cells</p></div>)}
-                        {identifierIssues.slice(0, 5).map((field) => <div key={`qi-${field.name}`}><span className="qualityIssueIcon warn">ID</span><p><strong>{field.name}</strong>{formatNumber(field.profile.repeated_value_count ?? 0)} repeated identifier value(s)</p></div>)}
-                        {outlierFields.slice(0, 5).map((field) => <div key={`qo-${field.name}`}><span className="qualityIssueIcon review">↗</span><p><strong>{field.name}</strong>{formatNumber(field.profile.outlier_count_iqr ?? 0)} IQR outlier(s) · median {formatDecimal(field.profile.median)}</p></div>)}
-                        {advancedQualityFlagCount === 0 && <div><span className="qualityIssueIcon good">✓</span><p><strong>No advanced quality flags</strong>The detected fields passed the current missingness, identifier-repeat and IQR checks.</p></div>}
+                <nav className="qualityTabs" aria-label="Data quality views">
+                  {([
+                    ["overview", "Overview"],
+                    ["missing", "Missing Values"],
+                    ["duplicates", "Duplicates"],
+                    ["inconsistent", "Inconsistent Data"],
+                    ["outliers", "Value Outliers"],
+                    ["preview", "Data Preview"],
+                  ] as Array<[QualitySubTab, string]>).map(([tab, label]) => (
+                    <button key={tab} className={qualitySubTab === tab ? "active" : ""} onClick={() => setQualitySubTab(tab)}>{label}</button>
+                  ))}
+                </nav>
+
+                {qualitySubTab === "overview" && <>
+                  <div className="qualityKpiGrid">
+                    <article className="qualityKpiCard score"><div className="qualityKpiIcon">✓</div><div><span>Overall Data Quality</span><strong>{formatDecimal(result.quality.quality_score, 0)}<small>/100</small></strong><div className="qualityScoreTrack"><i style={{ width: `${Math.max(0, Math.min(100, result.quality.quality_score))}%` }} /></div><p>{result.quality.quality_score >= 90 ? "Strong quality. Only minor review may be needed." : result.quality.quality_score >= 75 ? "Good quality. A few issues should be reviewed." : "Quality issues should be reviewed before analysis."}</p></div></article>
+                    <article className="qualityKpiCard danger"><div className="qualityKpiIcon">!</div><div><span>Total Issues</span><strong>{formatNumber(result.quality.issue_count)}</strong><p>Across {formatNumber(result.quality.columns_with_issues)} column{result.quality.columns_with_issues === 1 ? "" : "s"}</p></div></article>
+                    <article className="qualityKpiCard warning"><div className="qualityKpiIcon">↯</div><div><span>Rows Affected</span><strong>{formatNumber(result.quality.affected_rows)}</strong><p>of {formatNumber(result.dataset.rows)} rows · {formatPercent(result.dataset.rows ? result.quality.affected_rows / result.dataset.rows * 100 : 0)}</p></div></article>
+                    <article className="qualityKpiCard info"><div className="qualityKpiIcon">▦</div><div><span>Columns with Issues</span><strong>{formatNumber(result.quality.columns_with_issues)}</strong><p>of {formatNumber(result.dataset.columns)} columns · {formatPercent(result.dataset.columns ? result.quality.columns_with_issues / result.dataset.columns * 100 : 0)}</p></div></article>
+                  </div>
+
+                  <div className="qualityOverviewGrid">
+                    <section className="panel qualityBreakdownPanel">
+                      <div className="panelHeader compactHeader"><div><span className="panelKicker">ISSUES BY TYPE</span><h3>What needs attention</h3></div></div>
+                      <div className="qualityBreakdownList">
+                        {([
+                          ["Missing values", result.quality.issue_breakdown.missing_values, "missing"],
+                          ["Duplicates", result.quality.issue_breakdown.duplicates, "duplicates"],
+                          ["Inconsistent data", result.quality.issue_breakdown.inconsistent_data, "inconsistent"],
+                          ["Outliers", result.quality.issue_breakdown.outliers, "outliers"],
+                          ["Invalid formats", result.quality.issue_breakdown.invalid_format, "inconsistent"],
+                        ] as Array<[string, number, QualitySubTab]>).map(([label, value, tab]) => {
+                          const maxValue = Math.max(1, ...Object.values(result.quality.issue_breakdown));
+                          return <button key={label} className="qualityBreakdownRow" onClick={() => setQualitySubTab(tab)}><span>{label}</span><div><i style={{ width: `${Math.max(2, value / maxValue * 100)}%` }} /></div><strong>{formatNumber(value)}</strong></button>;
+                        })}
                       </div>
                     </section>
-                    <section className="panel">
-                      <div className="panelHeader compactHeader"><div><span className="panelKicker">TIME COVERAGE</span><h3>Reporting date range</h3></div></div>
-                      {timeFields.length ? <div className="qualityTimeList">{timeFields.slice(0, 8).map((field) => <div key={`qt-${field.name}`}><strong>{field.name}</strong><span>{field.profile.earliest ?? "—"} → {field.profile.latest ?? "—"}</span><small>{field.profile.range_days != null ? `${formatNumber(field.profile.range_days)} day range` : "Date/time field"}</small></div>)}</div> : <div className="emptyState">No date/time field was detected in this dataset.</div>}
+
+                    <section className="panel qualityColumnsPanel">
+                      <div className="panelHeader compactHeader"><div><span className="panelKicker">ISSUES BY COLUMN</span><h3>Most affected fields</h3></div></div>
+                      <div className="qualityColumnList">
+                        {qualityColumnIssues.length ? qualityColumnIssues.slice(0, 8).map((item, index) => <div key={item.column}><span className="qualityColumnRank">{index + 1}</span><strong title={item.column}>{item.column}</strong><div><i style={{ width: `${Math.max(5, item.count / Math.max(1, qualityColumnIssues[0]?.count ?? 1) * 100)}%` }} /></div><em>{formatNumber(item.count)}</em></div>) : <div className="emptyState">No affected columns were detected.</div>}
+                      </div>
                     </section>
                   </div>
-                )}
+
+                  <section className="panel qualityReviewPanel">
+                    <div className="panelHeader compactHeader"><div><span className="panelKicker">TOP ISSUES TO REVIEW</span><h3>Prioritised quality checks</h3></div><a className="textButton" href="/clean">Open Clean My Data →</a></div>
+                    <div className="qualityReviewTableWrap"><table className="qualityReviewTable"><thead><tr><th>Issue type</th><th>Description</th><th>Affected</th><th>Action</th></tr></thead><tbody>
+                      <tr><td><span className="qualityTypeDot danger"/>Missing values</td><td>{result.quality.missing_by_column[0] ? `${result.quality.missing_by_column[0].column} has the largest missing-value count` : "No missing values detected"}</td><td>{formatNumber(result.quality.issue_breakdown.missing_values)}</td><td><button onClick={() => setQualitySubTab("missing")}>View</button></td></tr>
+                      <tr><td><span className="qualityTypeDot warning"/>Duplicates</td><td>Exact repeated rows detected across the uploaded dataset</td><td>{formatNumber(result.quality.duplicate_rows)}</td><td><button onClick={() => setQualitySubTab("duplicates")}>View</button></td></tr>
+                      <tr><td><span className="qualityTypeDot info"/>Inconsistent data</td><td>Case-only text variants and mixed date formatting</td><td>{formatNumber(result.quality.issue_breakdown.inconsistent_data + result.quality.issue_breakdown.invalid_format)}</td><td><button onClick={() => setQualitySubTab("inconsistent")}>View</button></td></tr>
+                      <tr><td><span className="qualityTypeDot review"/>Value outliers</td><td>Values outside the standard 1.5 × IQR statistical fences</td><td>{formatNumber(result.quality.issue_breakdown.outliers)}</td><td><button onClick={() => setQualitySubTab("outliers")}>View</button></td></tr>
+                    </tbody></table></div>
+                  </section>
+
+                  <div className="qualityBottomGrid">
+                    <section className="panel qualityChecklist"><div className="panelHeader compactHeader"><div><span className="panelKicker">VALIDATION CHECKLIST</span><h3>Scan status</h3></div></div><div className="qualityChecklistRows">{result.quality.validation_checks.map((check) => <div key={check.label}><span className={check.status === "pass" ? "pass" : "warn"}>{check.status === "pass" ? "✓" : "!"}</span><p>{check.label}</p></div>)}</div></section>
+                    <section className="panel qualityActions"><div className="panelHeader compactHeader"><div><span className="panelKicker">RECOMMENDED ACTIONS</span><h3>What to do next</h3></div></div><ol>{result.quality.recommended_actions.map((action, index) => <li key={action}><span>{index + 1}</span><p>{action}</p></li>)}</ol></section>
+                    <section className="qualityContinueCard"><div className="qualityContinueIcon">✦</div><h3>Clean data. Better insights.</h3><p>Review the flagged issues, then continue to visual exploration or use the cleaning utility for high-confidence fixes.</p><div><button className="primaryButton" onClick={() => setActiveTab("explore")}>Continue to Explore →</button><a href="/clean">Clean this type of data</a></div></section>
+                  </div>
+                </>}
+
+                {qualitySubTab === "missing" && <div className="qualityDetailPage">
+                  <section className="panel qualityDetailHero"><div><span className="panelKicker">MISSING VALUES</span><h3>{formatNumber(result.quality.issue_breakdown.missing_values)} missing or blank values detected</h3><p>Review which fields are incomplete and inspect example rows containing null values. Missing data is reported, not automatically filled.</p></div><strong>{result.quality.completeness_percent}%<small>complete</small></strong></section>
+                  <div className="qualityDetailGridWide"><section className="panel"><div className="panelHeader compactHeader"><div><span className="panelKicker">BY FIELD</span><h3>Missingness profile</h3></div></div>{result.quality.missing_by_column.length ? <div className="qualityFieldList">{result.quality.missing_by_column.map((item) => <div className="qualityFieldRow" key={item.column}><div className="qualityFieldMeta"><strong>{item.column}</strong><span>{formatNumber(item.count)} missing · {formatPercent(item.percent)}</span></div><div className="qualityTrack"><span style={{ width: `${Math.min(100, item.percent)}%` }} /></div></div>)}</div> : <div className="emptyState">No null values were detected.</div>}</section></div>
+                  <QualityPreviewTable title="Example rows with missing values" rows={result.quality.missing_preview} />
+                </div>}
+
+                {qualitySubTab === "duplicates" && <div className="qualityDetailPage">
+                  <section className="panel qualityDetailHero"><div><span className="panelKicker">DUPLICATE ROWS</span><h3>{formatNumber(result.quality.duplicate_rows)} exact duplicate row{result.quality.duplicate_rows === 1 ? "" : "s"}</h3><p>Duplicates are exact row-level repeats. Review them before removal because some repeated transactions may be legitimate business records.</p></div><a className="primaryButton" href="/clean">Open Clean My Data</a></section>
+                  <QualityPreviewTable title="Duplicate record examples" rows={result.quality.duplicate_preview} />
+                </div>}
+
+                {qualitySubTab === "inconsistent" && <div className="qualityDetailPage">
+                  <section className="panel qualityDetailHero"><div><span className="panelKicker">INCONSISTENT DATA</span><h3>{formatNumber(result.quality.inconsistent_columns.length + result.quality.date_issue_columns.length)} field{result.quality.inconsistent_columns.length + result.quality.date_issue_columns.length === 1 ? "" : "s"} need formatting review</h3><p>The current scan detects case-only text variants and mixed date formats. It does not guess semantic synonyms such as “VIC” versus “Victoria”.</p></div><a className="primaryButton" href="/clean">Review cleaning options</a></section>
+                  <div className="qualityVariantGrid">
+                    <section className="panel"><div className="panelHeader compactHeader"><div><span className="panelKicker">TEXT VARIANTS</span><h3>Case consistency</h3></div></div><div className="qualityVariantList">{result.quality.inconsistent_columns.length ? result.quality.inconsistent_columns.map((item) => <div key={item.column}><strong>{item.column}</strong><span>{formatNumber(item.variant_groups)} variant group{item.variant_groups === 1 ? "" : "s"}</span><p>{item.examples.map((group) => group.join(" / ")).join(" · ")}</p></div>) : <div className="emptyState">No case-only text variants were detected.</div>}</div></section>
+                    <section className="panel"><div className="panelHeader compactHeader"><div><span className="panelKicker">DATE FORMATS</span><h3>Mixed date representation</h3></div></div><div className="qualityVariantList">{result.quality.date_issue_columns.length ? result.quality.date_issue_columns.map((item) => <div key={item.column}><strong>{item.column}</strong><span>{item.parseable_percent}% parseable</span><p>Recommended format: {item.target_format}</p></div>) : <div className="emptyState">No mixed date-format columns were detected.</div>}</div></section>
+                  </div>
+                </div>}
+
+                {qualitySubTab === "outliers" && <div className="qualityDetailPage">
+                  <section className="panel qualityDetailHero"><div><span className="panelKicker">VALUE OUTLIERS</span><h3>{formatNumber(result.quality.issue_breakdown.outliers)} statistical outlier flag{result.quality.issue_breakdown.outliers === 1 ? "" : "s"}</h3><p>Outliers use the standard 1.5 × IQR rule. A flagged value is not automatically wrong; it is a prompt to validate the source record.</p></div></section>
+                  <section className="panel"><div className="panelHeader compactHeader"><div><span className="panelKicker">OUTLIER FENCES</span><h3>Fields requiring validation</h3></div></div><div className="qualityOutlierList">{result.quality.outlier_columns.length ? result.quality.outlier_columns.map((item) => <div key={item.column}><div><strong>{item.column}</strong><span>{formatNumber(item.count)} flagged · {formatPercent(item.percent)}</span></div><p>Expected range: {formatDecimal(item.lower_fence)} to {formatDecimal(item.upper_fence)}</p><small>Examples: {item.examples.map((value) => formatDecimal(value)).join(", ") || "—"}</small></div>) : <div className="emptyState">No IQR outliers were detected.</div>}</div></section>
+                  <QualityPreviewTable title="Example rows containing outlier values" rows={result.quality.outlier_preview} />
+                </div>}
+
+                {qualitySubTab === "preview" && <div className="qualityDetailPage">
+                  <section className="panel qualityDetailHero"><div><span className="panelKicker">DATA PREVIEW</span><h3>Source records used for analysis</h3><p>Use this preview to confirm headers, formats and representative values before moving into insights and charts.</p></div><button className="primaryButton" onClick={() => setActiveTab("fields")}>Inspect fields →</button></section>
+                  <QualityPreviewTable title="First 10 source rows" rows={result.preview} />
+                </div>}
               </div>
             )}
 
@@ -1690,8 +1831,18 @@ export default function Home() {
         </>
       )}
 
-      <footer className="siteFooter"><strong>Azhan Data Studio</strong><span>Created by Azhan Hassan · Data &amp; AI Automation Specialist</span><a href={PORTFOLIO_URL} target="_blank" rel="noreferrer">View Portfolio ↗</a><a className="footerSupport" href={SUPPORT_URL || "#support"} target={SUPPORT_URL ? "_blank" : undefined} rel={SUPPORT_URL ? "noreferrer" : undefined}>☕ Support the project</a></footer>
+      <footer className="siteFooter"><strong>Azhan Data Studio</strong><span>Created by Azhan Hassan · Data &amp; AI Automation Specialist</span><a href="/privacy">Privacy &amp; Data Handling</a><a href="/terms">Terms &amp; Disclaimer</a><a href={PORTFOLIO_URL} target="_blank" rel="noreferrer">View Portfolio ↗</a><a className="footerSupport" href={SUPPORT_URL || "#support"} target={SUPPORT_URL ? "_blank" : undefined} rel={SUPPORT_URL ? "noreferrer" : undefined}>☕ Support the project</a></footer>
     </main>
+  );
+}
+
+function QualityPreviewTable({ title, rows }: { title: string; rows: Array<Record<string, unknown>> }) {
+  const columns = rows.length ? Object.keys(rows[0]) : [];
+  return (
+    <section className="panel qualityPreviewPanel">
+      <div className="panelHeader compactHeader"><div><span className="panelKicker">AFFECTED RECORDS</span><h3>{title}</h3></div><span className="qualityPreviewCount">{formatNumber(rows.length)} shown</span></div>
+      {rows.length ? <div className="qualityPreviewWrap"><table><thead><tr>{columns.map((column) => <th key={column}>{column === "__row_number" ? "Row" : column}</th>)}</tr></thead><tbody>{rows.map((row, index) => <tr key={index}>{columns.map((column) => <td key={column}>{row[column] == null ? <span className="qualityNull">Missing</span> : String(row[column])}</td>)}</tr>)}</tbody></table></div> : <div className="emptyState">No affected record examples were found for this check.</div>}
+    </section>
   );
 }
 

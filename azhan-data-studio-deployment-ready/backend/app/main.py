@@ -2,16 +2,18 @@ from __future__ import annotations
 
 import math
 import re
-from collections import Counter
+from collections import Counter, defaultdict, deque
 from datetime import date, datetime
+from time import monotonic
 from io import BytesIO
 import os
 from pathlib import Path
 from typing import Any
 
 import polars as pl
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Response
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.responses import JSONResponse
 
 from app.insights import discover_insights
 from app.monthly import SourceFrame, analyse_monthly, prepare_monthly
@@ -31,17 +33,21 @@ MONTHLY_MAX_FILE_SIZE = 20 * 1024 * 1024  # 20 MB per monthly file
 MONTHLY_MAX_FILES = 24
 MONTHLY_MAX_TOTAL_SIZE = 100 * 1024 * 1024  # 100 MB per request
 SUPPORTED_EXTENSIONS = {".csv", ".xlsx"}
+RATE_LIMIT_REQUESTS = max(1, int(os.getenv("RATE_LIMIT_REQUESTS", "120")))
+RATE_LIMIT_WINDOW_SECONDS = max(60, int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "600")))
+_rate_limit_buckets: dict[str, deque[float]] = defaultdict(deque)
 
 app = FastAPI(
     title=APP_NAME,
     description="Deterministic data-intelligence API for profiling, discovery, ranking, visualisation, dataset comparison, forecasting, scenario modelling, statistical testing, and report-ready analysis.",
-    version="1.6.0",
+    version="1.7.0",
 )
 
 DEFAULT_CORS_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
+LOCAL_CORS_REGEX = r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"
 
 production_origins = [
     origin.strip().rstrip("/")
@@ -52,10 +58,43 @@ production_origins = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[*DEFAULT_CORS_ORIGINS, *production_origins],
+    allow_origin_regex=LOCAL_CORS_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def _request_client_key(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for", "")
+    if forwarded:
+        return forwarded.split(",", 1)[0].strip() or "unknown"
+    return request.client.host if request.client else "unknown"
+
+
+@app.middleware("http")
+async def limit_analysis_requests(request: Request, call_next):
+    """Basic per-client protection for public POST analysis endpoints.
+
+    This deliberately uses no external dependency. It is a lightweight launch guard,
+    not a replacement for provider-level rate limiting in a multi-instance deployment.
+    """
+    if request.method == "POST" and request.url.path.startswith("/api/datasets"):
+        now = monotonic()
+        bucket = _rate_limit_buckets[_request_client_key(request)]
+        cutoff = now - RATE_LIMIT_WINDOW_SECONDS
+        while bucket and bucket[0] < cutoff:
+            bucket.popleft()
+        if len(bucket) >= RATE_LIMIT_REQUESTS:
+            return JSONResponse(
+                status_code=429,
+                content={
+                    "detail": "Too many analysis requests from this connection. Please wait a few minutes and try again."
+                },
+                headers={"Retry-After": str(RATE_LIMIT_WINDOW_SECONDS)},
+            )
+        bucket.append(now)
+    return await call_next(request)
 
 
 @app.get("/")
@@ -603,6 +642,7 @@ async def inspect_dataset(
     completeness = round((1 - (total_missing / total_cells)) * 100, 1) if total_cells else 100.0
     preview = dataframe.head(10).to_dicts()
     discovery = discover_insights(dataframe, schema, duplicate_rows)
+    quality_diagnostics = analyse_cleaning(dataframe)
 
     result = {
         "dataset": {
@@ -617,6 +657,20 @@ async def inspect_dataset(
             "missing_values": total_missing,
             "duplicate_rows": duplicate_rows,
             "completeness_percent": completeness,
+            "quality_score": quality_diagnostics["quality_score"],
+            "issue_count": quality_diagnostics["issue_count"],
+            "affected_rows": quality_diagnostics["affected_rows"],
+            "columns_with_issues": quality_diagnostics["columns_with_issues"],
+            "issue_breakdown": quality_diagnostics["issue_breakdown"],
+            "missing_by_column": quality_diagnostics["missing_by_column"],
+            "missing_preview": quality_diagnostics["missing_preview"],
+            "duplicate_preview": quality_diagnostics["duplicate_preview"],
+            "inconsistent_columns": quality_diagnostics["inconsistent_columns"],
+            "date_issue_columns": quality_diagnostics["date_issue_columns"],
+            "outlier_columns": quality_diagnostics["outlier_columns"],
+            "outlier_preview": quality_diagnostics["outlier_preview"],
+            "validation_checks": quality_diagnostics["validation_checks"],
+            "recommended_actions": quality_diagnostics["recommended_actions_list"],
         },
         "understanding": {
             "role_counts": dict(role_counts),

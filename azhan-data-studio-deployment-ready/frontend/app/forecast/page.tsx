@@ -1,7 +1,10 @@
 "use client";
 
+import { apiFetch } from "../lib/api";
+
 import { ChangeEvent, useMemo, useRef, useState } from "react";
 import { ToolPdfReport, ToolPdfSection, printToolReport } from "../components/tool-report";
+import { PORTFOLIO_URL, SUPPORT_URL } from "../lib/config";
 
 type WorkbookSheet = {
   index: number;
@@ -120,8 +123,6 @@ type ForecastResult = {
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
-const PORTFOLIO_URL = "https://syedazhan.netlify.app/";
-const SUPPORT_URL = process.env.NEXT_PUBLIC_SUPPORT_URL ?? "";
 const MAX_BYTES = 20 * 1024 * 1024;
 
 function formatNumber(value: number, digits = 0) {
@@ -287,7 +288,7 @@ export default function ForecastPage() {
   async function inspectWorkbook(selectedFile: File) {
     const form = new FormData();
     form.append("file", selectedFile);
-    const response = await fetch(`${API_URL}/api/datasets/workbook`, { method: "POST", body: form });
+    const response = await apiFetch(`${API_URL}/api/datasets/workbook`, { method: "POST", body: form });
     if (!response.ok) throw new Error(await responseError(response));
     const body = await response.json();
     return body.workbook as WorkbookInfo;
@@ -302,7 +303,7 @@ export default function ForecastPage() {
       const form = new FormData();
       form.append("file", selectedFile);
       if (selectedSheet) form.append("sheet_name", selectedSheet);
-      const response = await fetch(`${API_URL}/api/datasets/forecast/prepare`, { method: "POST", body: form });
+      const response = await apiFetch(`${API_URL}/api/datasets/forecast/prepare`, { method: "POST", body: form });
       if (!response.ok) throw new Error(await responseError(response));
       const body = await response.json() as ForecastPreparation;
       setPreparation(body);
@@ -374,7 +375,7 @@ export default function ForecastPage() {
       form.append("frequency", frequency);
       form.append("horizon", String(horizon));
       if (sheetName) form.append("sheet_name", sheetName);
-      const response = await fetch(`${API_URL}/api/datasets/forecast`, { method: "POST", body: form });
+      const response = await apiFetch(`${API_URL}/api/datasets/forecast`, { method: "POST", body: form });
       if (!response.ok) throw new Error(await responseError(response));
       setResult(await response.json() as ForecastResult);
     } catch (err) {
@@ -565,7 +566,7 @@ export default function ForecastPage() {
 
         <section className="supportLanding" id="support">
           <div><span className="panelKicker">INDEPENDENTLY BUILT</span><strong>Did Azhan Data Studio save you time?</strong><p>The studio stays free to use. If it helped you understand, compare or forecast your data, you can support continued development with a one-time contribution.</p></div>
-          {SUPPORT_URL ? <a className="supportPrimaryButton" href={SUPPORT_URL} target="_blank" rel="noreferrer">☕ Support development</a> : <span className="supportPending">Stripe support link coming soon</span>}
+          {SUPPORT_URL ? <a className="supportPrimaryButton" href={SUPPORT_URL} target="_blank" rel="noreferrer">☕ Support development</a> : <span className="supportPending">Data Studio support link not configured</span>}
         </section>
       </section>
     </main>

@@ -4,63 +4,91 @@ Current production architecture:
 - Frontend: Netlify (Next.js)
 - Backend: Railway (FastAPI + Polars)
 
-All product modes use the same frontend and the same Railway backend. No second backend service is required for Monthly Intelligence, Compare, Explain Change, Forecast, Scenario, or Statistics.
+All product modes use the same frontend and Railway backend.
 
 ## Railway backend
 
-If the GitHub repository contains this project at `azhan-data-studio-deployment-ready`, use:
+Use the `backend` folder as the service root.
 
-- Root Directory: `/azhan-data-studio-deployment-ready/backend`
-- Build Command: `pip install -r requirements.txt`
-- Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+Build command:
+`pip install -r requirements.txt`
 
-Environment variable:
+Start command:
+`uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 
-`CORS_ORIGINS=https://azhandatastudio.netlify.app`
+Environment variables:
+- `CORS_ORIGINS=https://azhandatastudio.com,https://www.azhandatastudio.com,https://azhandatastudio.netlify.app`
+- `RATE_LIMIT_REQUESTS=120`
+- `RATE_LIMIT_WINDOW_SECONDS=600`
 
-The included `.python-version` pins Python 3.13.
+The included `.python-version` pins the production runtime expected by the project.
 
 After deployment verify:
 - `/health`
 - `/docs`
-- `/api/datasets/monthly/prepare`
-- `/api/datasets/monthly/analyse`
-- `/api/datasets/compare/prepare`
-- `/api/datasets/compare`
-- `/api/datasets/forecast/prepare`
-- `/api/datasets/forecast`
-- `/api/datasets/scenario/prepare`
-- `/api/datasets/scenario`
+- Analyse Data, Compare, Monthly, Forecast, Scenario and Statistics POST flows
+- a deliberate burst should eventually return HTTP 429 rather than overloading the app
 
 ## Netlify frontend
 
-Keep:
+Environment variables:
 - `NEXT_PUBLIC_API_URL` = Railway public backend URL, no trailing slash
-- `NEXT_PUBLIC_SUPPORT_URL` = Stripe Payment Link when support is enabled
+- `NEXT_PUBLIC_SITE_URL` = `https://azhandatastudio.com` (canonical public frontend URL)
+- `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` = Search Console verification token when issued
+- `NEXT_PUBLIC_DATA_STUDIO_SUPPORT_URL` = `https://buy.stripe.com/3cIcN514E65u8MnaKAdjO00`
 
-The included `netlify.toml` builds the Next.js app from `frontend`.
+The confirmed Data Studio checkout is also the safe fallback in `frontend/app/lib/config.ts`.
 
-Production pages:
+Production pages include:
 - `/` Analyse Single File
-- `/monthly` Monthly Intelligence v3.2
-- `/compare` Compare Datasets + Explain Change v2
-- `/forecast` Forecast Studio v1
-- `/scenario` Scenario Studio v1
-- `/statistics` Statistics Studio v1
+- `/clean`
+- `/monthly`
+- `/compare`
+- `/forecast`
+- `/scenario`
+- `/statistics`
+- `/features`
+- `/features/csv-excel-analysis`
+- `/features/data-quality-checker`
+- `/features/compare-excel-files`
+- `/features/data-forecasting`
+- `/privacy`
+- `/terms`
+- `/sitemap.xml`
+- `/robots.txt`
+- `/opengraph-image`
+
+## Custom domain cutover
+
+Primary public domain: `https://azhandatastudio.com`
+
+Recommended Netlify setup:
+- add `azhandatastudio.com` as the primary custom domain
+- add `www.azhandatastudio.com` as a domain alias and redirect it to the apex domain
+- keep the existing `azhandatastudio.netlify.app` hostname available as a Netlify fallback, but do not use it as a canonical URL
+- set `NEXT_PUBLIC_SITE_URL=https://azhandatastudio.com` in Netlify before the production deploy
+- after DNS/HTTPS is active, verify that the Netlify hostname and `www` resolve or redirect to the primary custom domain
+
+The backend CORS example includes the apex, `www`, and legacy Netlify hostname so the analysis API continues to work during the cutover. After the custom domain is stable, the legacy Netlify origin can be removed from Railway if desired.
 
 ## Production regression test
 
-1. Analyse one CSV and one XLSX file.
-2. Verify multi-sheet workbook selection.
-3. Verify Overview, Insights, Explore, Reports, Data Quality, and Fields.
-4. Verify Print / Save PDF and Download Insights CSV.
-5. Add the three `sample-data/monthly-sales-2026-0*.csv` files in Monthly Intelligence and verify period detection, Revenue movement, Region drivers, QLD as a new value, KPI alert rules, historical benchmark cards, per-record comparison, and Data Quality Centre.
-6. In Monthly Intelligence choose **Generate Executive PDF**, confirm the branded report contains the executive summary, period comparison, trend, alerts, drivers, data quality and source register, then use the browser **Save as PDF** option.
-7. Compare `sample-data/compare-baseline.csv` vs `sample-data/compare-current.csv` using `OrderID`.
-8. Verify Explain Change v2 renders ranked driver evidence.
-9. Forecast `sample-data/forecast-monthly-sample.csv` using `Month` + `Revenue` with a 6-period horizon.
-10. Run `sample-data/scenario-business-sample.csv` with Revenue − Cost, Upside Revenue +10% / Cost +5%, Downside Revenue -10% / Cost 0%, and Region breakdown.
-11. Verify Stripe Support opens the configured Payment Link if `NEXT_PUBLIC_SUPPORT_URL` is set.
+1. Load `/` and choose **Try sample data instead**, then run the analysis.
+2. Analyse one real CSV and one real XLSX file and verify sheet selection.
+3. Verify Overview, Data Quality, Insights, Explore, Reports and Fields.
+4. Stop the backend temporarily and confirm the frontend shows the friendly analysis-service connection message rather than raw `Failed to fetch`.
+5. Verify a file over 50 MB is blocked by the main Analyse Data UI before upload.
+6. Check Clean, Monthly, Compare, Forecast, Scenario and Statistics still run.
+7. Verify every Support button opens `https://buy.stripe.com/3cIcN514E65u8MnaKAdjO00`.
+8. Check `/features` and all four feature-guide pages on desktop and mobile widths.
+9. Check `/privacy` and `/terms` and confirm legal links are reachable from the public content.
+10. Open `/sitemap.xml` and confirm every intended public page appears.
+11. Open `/robots.txt` and confirm it references the production sitemap.
+12. View source/DevTools and verify canonical, description and Open Graph metadata on the homepage and a feature page.
+13. Check the social preview image at `/opengraph-image`.
+14. After Search Console verification, submit `/sitemap.xml` and inspect the homepage plus four feature pages.
+15. Run Lighthouse/PageSpeed and address material performance, SEO or accessibility warnings before promotion.
 
 ## Data handling
-Uploaded datasets are processed by the FastAPI backend for the request. The application code does not persist uploaded files after request processing.
+
+Uploaded source files are read by the FastAPI backend for the requested analysis and are not intentionally written to persistent application storage. Monthly Intelligence can persist selected files in the user's own browser IndexedDB and stores alert preferences in localStorage. See `/privacy` for the public explanation.

@@ -14,6 +14,7 @@ Included product capabilities:
 - Data quality and field profiling
 - Report / Print to PDF and Insights CSV export
 - Monthly Intelligence v3.2 - browser-persistent monthly library, configurable KPI alerts, stronger period comparison, historical benchmarking, automatic insights, Data Quality Centre, Executive PDF Reporting
+- Data Quality Centre v3.3 - real quality score, issue breakdowns, missing/duplicate/outlier record previews, consistency checks, validation checklist, and Explore/Clean workflow handoff
 - Compare Datasets
 - Explain Change v2
 - Forecast Studio v1
