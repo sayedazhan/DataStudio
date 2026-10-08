@@ -4,6 +4,15 @@ import { SITE_NAME, SITE_URL } from "../lib/seo";
 type FeaturePoint = { title: string; description: string };
 type Step = { title: string; description: string };
 type Faq = { question: string; answer: string };
+type RelatedLink = { href: string; title: string; description: string };
+type ExampleMetric = { label: string; value: string };
+type FeatureExample = {
+  eyebrow?: string;
+  title: string;
+  intro: string;
+  metrics: ExampleMetric[];
+  notes?: string[];
+};
 
 type Props = {
   eyebrow: string;
@@ -19,13 +28,15 @@ type Props = {
   useCases: string[];
   faqs: Faq[];
   pagePath: string;
+  example?: FeatureExample;
+  relatedLinks?: RelatedLink[];
 };
 
 function DataStudioMark() {
   return <span className="dataStudioMark" aria-hidden="true"><span className="dataStudioA">A</span><span className="dataStudioBars"><i /><i /><i /></span></span>;
 }
 
-export function SeoFeaturePage({ eyebrow, title, lead, toolHref, toolLabel, secondaryHref, secondaryLabel, highlights, features, steps, useCases, faqs, pagePath }: Props) {
+export function SeoFeaturePage({ eyebrow, title, lead, toolHref, toolLabel, secondaryHref, secondaryLabel, highlights, features, steps, useCases, faqs, pagePath, example, relatedLinks = [] }: Props) {
   const pageUrl = `${SITE_URL}${pagePath}`;
   const pageSchema = {
     "@context": "https://schema.org",
@@ -57,6 +68,7 @@ export function SeoFeaturePage({ eyebrow, title, lead, toolHref, toolLabel, seco
       <header className="topbar seoTopbar">
         <a className="brand" href="/" aria-label={`${SITE_NAME} home`}><DataStudioMark /><span className="brandText"><strong>{SITE_NAME}</strong><small>Automated Data Intelligence</small></span></a>
         <div className="seoHeaderActions">
+          <a className="seoHeaderLink" href="/features">Tools & Guides</a>
           <a className="seoHeaderLink" href="/">Open Studio</a>
           {SUPPORT_URL ? <a className="supportTopButton" href={SUPPORT_URL} target="_blank" rel="noreferrer">☕ Support</a> : null}
         </div>
@@ -90,6 +102,14 @@ export function SeoFeaturePage({ eyebrow, title, lead, toolHref, toolLabel, seco
         <div className="seoFeatureGrid">{features.map((feature, index) => <article key={feature.title}><span>{String(index + 1).padStart(2, "0")}</span><h3>{feature.title}</h3><p>{feature.description}</p></article>)}</div>
       </section>
 
+      {example ? <section className="seoContentSection seoExampleSection">
+        <div className="seoSectionHeading"><span className="panelKicker">{example.eyebrow ?? "ILLUSTRATIVE EXAMPLE"}</span><h2>{example.title}</h2><p className="seoSectionIntro">{example.intro}</p></div>
+        <div className="seoExampleCard">
+          <div className="seoExampleMetrics">{example.metrics.map((metric) => <article key={metric.label}><span>{metric.label}</span><strong>{metric.value}</strong></article>)}</div>
+          {example.notes?.length ? <ul className="seoExampleNotes">{example.notes.map((note) => <li key={note}>{note}</li>)}</ul> : null}
+        </div>
+      </section> : null}
+
       <section className="seoContentSection seoStepsSection">
         <div className="seoSectionHeading"><span className="panelKicker">WORKFLOW</span><h2>A straightforward path from raw file to useful output.</h2></div>
         <div className="seoSteps">{steps.map((step, index) => <article key={step.title}><b>{index + 1}</b><div><h3>{step.title}</h3><p>{step.description}</p></div></article>)}</div>
@@ -99,6 +119,11 @@ export function SeoFeaturePage({ eyebrow, title, lead, toolHref, toolLabel, seco
         <div className="seoSectionHeading"><span className="panelKicker">USE CASES</span><h2>Useful when you need a fast answer from everyday business data.</h2></div>
         <div className="seoUseCases">{useCases.map((item) => <span key={item}>{item}</span>)}</div>
       </section>
+
+      {relatedLinks.length ? <section className="seoContentSection seoRelatedSection">
+        <div className="seoSectionHeading"><span className="panelKicker">LEARN & EXPLORE</span><h2>Related guides and tools</h2></div>
+        <div className="seoDiscoveryGrid seoRelatedGrid">{relatedLinks.map((link) => <a className="seoDiscoveryCard" href={link.href} key={link.href}><span>GUIDE</span><strong>{link.title}</strong><small>{link.description}</small></a>)}</div>
+      </section> : null}
 
       <section className="seoContentSection seoFaqSection">
         <div className="seoSectionHeading"><span className="panelKicker">FAQ</span><h2>Common questions</h2></div>
@@ -112,7 +137,7 @@ export function SeoFeaturePage({ eyebrow, title, lead, toolHref, toolLabel, seco
 
       <footer className="seoFooter">
         <div><strong>{SITE_NAME}</strong><span>Independently built by <a href={PORTFOLIO_URL} target="_blank" rel="noreferrer">Azhan Hassan</a>.</span></div>
-        <div><a href="/">Home</a><a href="/clean">Clean Data</a><a href="/compare">Compare</a><a href="/forecast">Forecast</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a>{SUPPORT_URL ? <a href={SUPPORT_URL} target="_blank" rel="noreferrer">Support</a> : null}</div>
+        <div><a href="/">Home</a><a href="/features">Tools & Guides</a><a href="/clean">Clean Data</a><a href="/compare">Compare</a><a href="/forecast">Forecast</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a>{SUPPORT_URL ? <a href={SUPPORT_URL} target="_blank" rel="noreferrer">Support</a> : null}</div>
       </footer>
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(pageSchema).replace(/</g, "\\u003c") }} />

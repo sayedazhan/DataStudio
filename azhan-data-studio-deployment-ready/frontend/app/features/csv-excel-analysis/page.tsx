@@ -3,22 +3,22 @@ import { SeoFeaturePage } from "../../components/seo-feature-page";
 import { buildPageMetadata } from "../../lib/seo";
 
 export const metadata: Metadata = buildPageMetadata({
-  title: "Free CSV & Excel Data Analysis Tool",
-  description: "Analyse CSV and Excel files online with automatic profiling, ranked insights, data-quality checks, visual discovery and report-ready outputs.",
+  title: "Analyse Excel & CSV Data Online Free",
+  description: "Analyse Excel and CSV files online with automatic profiling, data-quality checks, ranked insights, visual discovery and report-ready outputs. No login required.",
   path: "/features/csv-excel-analysis",
-  keywords: ["CSV data analysis", "Excel data analysis", "analyse CSV online", "analyse Excel online", "data analysis tool"],
+  keywords: ["analyse Excel data online", "analyse CSV online", "Excel data analysis tool", "CSV analysis tool", "automatic Excel analysis", "online data analysis tool"],
 });
 
 export default function CsvExcelAnalysisPage() {
   return <SeoFeaturePage
-    eyebrow="CSV & EXCEL DATA ANALYSIS"
-    title="Analyse CSV and Excel data without building a dashboard."
+    eyebrow="ONLINE EXCEL & CSV DATA ANALYSIS"
+    title="Analyse Excel and CSV data online without building charts first."
     lead="Upload a business dataset and Azhan Data Studio automatically profiles the fields, checks data quality, surfaces ranked findings and recommends useful visuals so you can understand what matters faster."
     toolHref="/"
     toolLabel="Analyse my data"
-    secondaryHref="/features/data-quality-checker"
-    secondaryLabel="Explore data quality"
-    highlights={["CSV and XLSX support", "Automatic ranked insights", "Data-quality evidence", "PDF and CSV outputs"]}
+    secondaryHref="/guides/analyse-excel-data-online"
+    secondaryLabel="Read the Excel analysis guide"
+    highlights={["CSV and XLSX support", "No login required", "Automatic ranked insights", "Data-quality evidence", "PDF and CSV outputs"]}
     features={[
       { title: "Automatic profiling", description: "Understand rows, fields, types, completeness, ranges and semantic roles before exploring the data." },
       { title: "Ranked findings", description: "Surface patterns, anomalies, group differences, relationships and concentrations with an evidence-based score." },
@@ -32,7 +32,13 @@ export default function CsvExcelAnalysisPage() {
       { title: "Export what you need", description: "Download findings, charts or a report when you are ready to use the analysis elsewhere." },
     ]}
     useCases={["Sales and operational reporting", "Survey and feedback analysis", "Inventory and product data", "Monthly management files", "Ad-hoc Excel analysis", "Pre-dashboard exploration"]}
+    relatedLinks={[
+      { href: "/guides/analyse-excel-data-online", title: "How to Analyse Excel Data Online", description: "A practical workflow for understanding a spreadsheet without manually building formulas and charts." },
+      { href: "/features/data-quality-checker", title: "Excel Data Quality Checker", description: "Check missing values, duplicates, inconsistencies and outliers before deeper analysis." },
+      { href: "/features/excel-dashboard-generator", title: "Excel Dashboard Generator", description: "Automatically convert analysis-ready spreadsheets into interactive dashboard views." },
+    ]}
     faqs={[
+      { question: "How can I analyse Excel data online?", answer: "Upload an .xlsx workbook, choose the sheet you want to analyse and run Analyse Data. Azhan Data Studio profiles the fields, checks quality, identifies analytical signals and generates supporting visuals without requiring formulas or dashboard setup." },
       { question: "What file types can I analyse?", answer: "Azhan Data Studio supports CSV files and Excel .xlsx workbooks. For Excel workbooks, you can choose an analysis-ready sheet before running the analysis." },
       { question: "Do I need to build charts or formulas first?", answer: "No. The analysis workflow is designed to profile the file, identify useful findings and generate supporting visuals without requiring dashboard setup." },
       { question: "Is Azhan Data Studio free to use?", answer: "Yes. The studio is free to use, with an optional one-time support link for users who want to contribute to continued development." },

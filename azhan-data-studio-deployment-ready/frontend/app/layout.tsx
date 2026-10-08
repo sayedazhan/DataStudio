@@ -94,7 +94,7 @@ const structuredData = {
       operatingSystem: "Web",
       browserRequirements: "Requires a modern web browser",
       description,
-      softwareVersion: "4.0",
+      softwareVersion: "4.1.1",
       isAccessibleForFree: true,
       offers: {
         "@type": "Offer",

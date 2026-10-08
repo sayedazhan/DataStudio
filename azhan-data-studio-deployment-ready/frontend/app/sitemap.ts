@@ -1,17 +1,21 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "./lib/seo";
 
-const LAST_UPDATED = new Date("2026-09-24T00:00:00+10:00");
+const LAST_UPDATED = new Date("2026-10-08T00:00:00+11:00");
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes = [
     { path: "/", priority: 1, changeFrequency: "weekly" as const },
-    { path: "/features", priority: 0.9, changeFrequency: "monthly" as const },
+    { path: "/features", priority: 0.95, changeFrequency: "weekly" as const },
     { path: "/features/excel-dashboard-generator", priority: 0.98, changeFrequency: "monthly" as const },
-    { path: "/features/csv-excel-analysis", priority: 0.95, changeFrequency: "monthly" as const },
-    { path: "/features/data-quality-checker", priority: 0.95, changeFrequency: "monthly" as const },
+    { path: "/features/csv-excel-analysis", priority: 0.98, changeFrequency: "monthly" as const },
+    { path: "/features/data-quality-checker", priority: 0.98, changeFrequency: "monthly" as const },
     { path: "/features/compare-excel-files", priority: 0.9, changeFrequency: "monthly" as const },
     { path: "/features/data-forecasting", priority: 0.9, changeFrequency: "monthly" as const },
+    { path: "/guides/check-excel-data-quality", priority: 0.9, changeFrequency: "monthly" as const },
+    { path: "/guides/create-dashboard-from-excel", priority: 0.9, changeFrequency: "monthly" as const },
+    { path: "/guides/analyse-excel-data-online", priority: 0.9, changeFrequency: "monthly" as const },
+    { path: "/guides/compare-excel-files", priority: 0.88, changeFrequency: "monthly" as const },
     { path: "/clean", priority: 0.85, changeFrequency: "monthly" as const },
     { path: "/monthly", priority: 0.8, changeFrequency: "monthly" as const },
     { path: "/compare", priority: 0.85, changeFrequency: "monthly" as const },

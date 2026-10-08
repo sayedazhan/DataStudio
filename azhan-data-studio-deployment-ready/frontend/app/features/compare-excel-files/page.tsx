@@ -32,6 +32,11 @@ export default function CompareExcelFilesPage() {
       { title: "Review what changed", description: "Use the summary, field evidence and record-level output to understand the movement." },
     ]}
     useCases={["Month-on-month reporting", "System extract validation", "Price-list changes", "Inventory movement", "Customer or dealer file changes", "Before/after data checks"]}
+    relatedLinks={[
+      { href: "/guides/compare-excel-files", title: "How to Compare Two Excel Files", description: "Learn a key-based workflow for added, removed and changed records." },
+      { href: "/guides/check-excel-data-quality", title: "Check Excel Data Quality First", description: "Reduce false differences caused by inconsistent values or formats." },
+      { href: "/features/csv-excel-analysis", title: "Analyse Excel & CSV Data", description: "Continue from file comparison into deeper profiling and insights." },
+    ]}
     faqs={[
       { question: "Can I compare Excel files as well as CSV files?", answer: "Yes. The comparison workflow supports CSV and Excel .xlsx files, including sheet selection for Excel workbooks." },
       { question: "Do the two files need identical columns?", answer: "No. The tool first identifies schema differences such as added, removed or changed fields, then uses the common structure for compatible comparisons." },
