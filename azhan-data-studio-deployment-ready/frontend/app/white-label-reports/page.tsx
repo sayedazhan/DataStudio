@@ -1,0 +1,21 @@
+import type { Metadata } from "next";
+import MarketingShell from "../components/marketing-shell";
+import { MiniReportStack } from "../components/marketing-visuals";
+import { buildPageMetadata } from "../lib/seo";
+
+export const metadata: Metadata = buildPageMetadata({
+  title: "White-Label Analytics & Data Analysis Reports",
+  description: "Create white-label analytics and data analysis reports with your company name, logo, colours, report identity and repeatable Excel or CSV reporting workflows.",
+  path: "/white-label-reports",
+  keywords: ["white label analytics reports", "white label data reports", "company branded reports", "custom data analysis report", "branded business reporting"],
+});
+
+export default function WhiteLabelReportsPage(){
+  return <MarketingShell>
+    <section className="marketingPageHero reportHero"><div><span className="marketingEyebrow">WHITE-LABEL REPORTING</span><h1>Professional analysis reports under your company brand.</h1><p>For organisations that want the analytical output without Azhan Data Studio branding, reports can be configured with your own company identity.</p><div className="marketingHeroActions"><a className="marketingPrimaryButton large" href="/contact#white-label">Contact Azhan →</a><a className="marketingSecondaryButton large" href="/reports">See Reporting Studio</a></div></div><MiniReportStack/></section>
+    <section className="marketingSection"><div className="marketingSectionHead"><span>BRANDING OPTIONS</span><h2>Make the report feel like your organisation produced it.</h2></div><div className="marketingBrandingGrid"><article><span>01</span><strong>Company identity</strong><p>Your company name and logo on the cover, headers and footer.</p></article><article><span>02</span><strong>Brand colours</strong><p>Adapt the report colour system to align with your visual identity.</p></article><article><span>03</span><strong>Report identity</strong><p>Custom titles, descriptors, footer language and stakeholder context.</p></article><article><span>04</span><strong>Recurring reporting</strong><p>Discuss repeatable report formats for regular datasets and reviews.</p></article></div></section>
+    <section className="marketingSplitBand"><div><span>WHO IT CAN HELP</span><h2>Built for teams that share analysis externally or internally.</h2><p>White-label reporting can suit consultants, small businesses, internal analytics teams and organisations that need a consistent professional output.</p></div><div className="marketingCheckList"><span>✓ Client-facing analysis</span><span>✓ Management reporting</span><span>✓ Monthly business reviews</span><span>✓ Internal performance packs</span><span>✓ Custom data projects</span><span>✓ Branded analytics deliverables</span></div></section>
+    <section className="marketingSection"><div className="marketingSectionHead"><span>COMMON USE CASES</span><h2>Use white-label reporting where the analysis needs to carry your identity.</h2><p>Branding can be applied to different analytical workflows depending on the structure of the data and the audience receiving the report.</p></div><div className="marketingCapabilityGrid"><a href="/solutions/sales-analysis"><span>01</span><strong>Sales Performance</strong><p>Company-branded revenue, product, region and trend reporting.</p><em>See sales workflow →</em></a><a href="/solutions/inventory-analysis"><span>02</span><strong>Inventory Reviews</strong><p>Recurring stock, movement and category reporting for internal reviews.</p><em>See inventory workflow →</em></a><a href="/solutions/financial-analysis"><span>03</span><strong>Financial Analysis</strong><p>Branded analysis for cost, revenue, scenario and period comparisons.</p><em>See finance workflow →</em></a><a href="/solutions/operations-analysis"><span>04</span><strong>Operational Reporting</strong><p>Consistent branded reporting for process, status and performance data.</p><em>See operations workflow →</em></a></div></section>
+    <section className="marketingFinalCta" id="white-label"><span>WHITE-LABEL ENQUIRIES</span><h2>Tell Azhan what you need.</h2><p>Share your reporting use case, brand requirements and how often you expect to generate reports.</p><a className="marketingPrimaryButton large" href="/contact#white-label">Contact Azhan →</a></section>
+  </MarketingShell>;
+}

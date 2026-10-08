@@ -69,7 +69,7 @@ export function SeoFeaturePage({ eyebrow, title, lead, toolHref, toolLabel, seco
         <a className="brand" href="/" aria-label={`${SITE_NAME} home`}><DataStudioMark /><span className="brandText"><strong>{SITE_NAME}</strong><small>Automated Data Intelligence</small></span></a>
         <div className="seoHeaderActions">
           <a className="seoHeaderLink" href="/features">Tools & Guides</a>
-          <a className="seoHeaderLink" href="/">Open Studio</a>
+          <a className="seoHeaderLink" href="/studio">Open Studio</a>
           {SUPPORT_URL ? <a className="supportTopButton" href={SUPPORT_URL} target="_blank" rel="noreferrer">☕ Support</a> : null}
         </div>
       </header>

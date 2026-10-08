@@ -21,7 +21,7 @@ export default function DashboardGeneratorPage() {
     eyebrow="EXCEL & CSV DASHBOARD GENERATOR"
     title="Create an interactive dashboard from Excel or CSV automatically."
     lead="Upload a dataset and Azhan Data Studio detects measures, dates and categories, then builds an interactive dashboard with KPIs, trends, breakdowns, filters, insights and underlying records. No manual chart setup required."
-    toolHref="/"
+    toolHref="/studio"
     toolLabel="Generate a dashboard"
     secondaryHref="/guides/create-dashboard-from-excel"
     secondaryLabel="Read the Excel dashboard guide"

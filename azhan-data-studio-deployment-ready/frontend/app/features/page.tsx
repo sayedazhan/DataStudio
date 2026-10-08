@@ -54,7 +54,7 @@ export default function FeaturesPage() {
   return <main className="seoFeaturePage">
     <header className="topbar seoTopbar">
       <a className="brand" href="/" aria-label={`${SITE_NAME} home`}><span className="dataStudioMark" aria-hidden="true"><span className="dataStudioA">A</span><span className="dataStudioBars"><i /><i /><i /></span></span><span className="brandText"><strong>{SITE_NAME}</strong><small>Automated Data Intelligence</small></span></a>
-      <div className="seoHeaderActions"><a className="seoHeaderLink" href="/">Open Studio</a>{SUPPORT_URL ? <a className="supportTopButton" href={SUPPORT_URL} target="_blank" rel="noreferrer">☕ Support</a> : null}</div>
+      <div className="seoHeaderActions"><a className="seoHeaderLink" href="/studio">Open Studio</a>{SUPPORT_URL ? <a className="supportTopButton" href={SUPPORT_URL} target="_blank" rel="noreferrer">☕ Support</a> : null}</div>
     </header>
 
     <section className="seoFeatureHero seoFeatureHubHero">
@@ -62,7 +62,7 @@ export default function FeaturesPage() {
         <span className="panelKicker">DATA STUDIO TOOLKIT</span>
         <h1>Free Excel and CSV tools with practical data guides.</h1>
         <p>Analyse spreadsheets, check data quality, create dashboards, compare files and forecast trends. Use the focused tools directly or follow a practical guide for the job you need to do.</p>
-        <div className="seoFeatureActions"><a className="seoPrimaryCta" href="/">Analyse a dataset</a><a className="seoSecondaryCta" href="/guides/analyse-excel-data-online">Read an analysis guide</a></div>
+        <div className="seoFeatureActions"><a className="seoPrimaryCta" href="/studio">Analyse a dataset</a><a className="seoSecondaryCta" href="/guides/analyse-excel-data-online">Read an analysis guide</a></div>
       </div>
       <aside className="seoFeaturePreview"><span>BUILT FOR</span><strong>Upload → Understand → Validate → Act</strong><div className="seoPreviewGrid"><article><b>CSV</b><small>Everyday extracts and exports</small></article><article><b>XLSX</b><small>Excel workbooks with sheet selection</small></article><article><b>QA</b><small>Quality checks before decisions</small></article><article><b>FREE</b><small>No account required</small></article></div></aside>
     </section>

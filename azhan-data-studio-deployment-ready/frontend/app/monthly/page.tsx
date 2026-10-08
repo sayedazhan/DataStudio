@@ -1,9 +1,10 @@
 "use client";
 
 import { apiFetch } from "../lib/api";
+import StudioToolShell from "../components/studio-tool-shell";
 
 import { ChangeEvent, DragEvent, useEffect, useMemo, useRef, useState } from "react";
-import { ToolPdfReport, ToolPdfSection, printToolReport } from "../components/tool-report";
+import { ToolPdfReport, ToolPdfSection, printToolReport, ToolPdfBars } from "../components/tool-report";
 import { PORTFOLIO_URL, SUPPORT_URL } from "../lib/config";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
@@ -361,7 +362,8 @@ function MonthlyExecutivePdfReport({ result }: { result: MonthlyResult }) {
       </ToolPdfSection>
 
       {result.drivers.length > 0 && <ToolPdfSection eyebrow="Movement drivers" title={`Largest changes by ${result.dataset.dimension}`}>
-        <table className="toolPdfTable">
+        <ToolPdfBars items={result.drivers.slice(0, 6).map((driver) => ({ label: driver.value, value: driver.change, display: `${driver.change >= 0 ? "+" : ""}${formatMetric(driver.change)}`, detail: `${formatPercent(driver.movement_share_percent)} of movement` }))} valueLabel="Movement by driver" />
+        <table className="toolPdfTable toolPdfTableAfterChart">
           <thead><tr><th>{result.dataset.dimension}</th><th>Previous</th><th>Current</th><th>Change</th><th>Movement share</th></tr></thead>
           <tbody>{result.drivers.slice(0, 8).map((driver) => <tr key={driver.value}><td><strong>{driver.value}</strong></td><td>{formatMetric(driver.previous)}</td><td>{formatMetric(driver.current)}</td><td>{driver.change >= 0 ? "+" : ""}{formatMetric(driver.change)} ({formatPercent(driver.change_percent, true)})</td><td>{formatPercent(driver.movement_share_percent)}</td></tr>)}</tbody>
         </table>
@@ -603,27 +605,7 @@ export default function MonthlyPage() {
   }
 
   return (
-    <main>
-      <header className="topbar">
-        <a className="brand" href="/" aria-label="Azhan Data Studio home"><DataStudioMark /><span className="brandText"><strong>Azhan Data Studio</strong><small>Automated Data Intelligence</small></span></a>
-        <div className="topbarActions">
-          <a className="creatorBadge" href={PORTFOLIO_URL} target="_blank" rel="noreferrer"><span className="creatorLabel">CREATED BY</span><span className="creatorName">Azhan Hassan</span><span className="creatorRole">Data &amp; AI Automation Specialist</span><span className="portfolioCta">View Portfolio ↗</span></a>
-          <a className="supportTopButton" href={SUPPORT_URL || "#support"} target={SUPPORT_URL ? "_blank" : undefined} rel={SUPPORT_URL ? "noreferrer" : undefined}>☕ Support</a>
-        </div>
-      </header>
-
-      <nav className="studioModeBar" aria-label="Choose analysis mode">
-        <div className="studioModeInner">
-          <a className="studioModeTab" href="/"><span className="studioModeIcon">▤</span><span><strong>Analyse Single File</strong><small>Discover insights, quality and visuals</small></span></a>
-          <a className="studioModeTab" href="/clean"><span className="studioModeIcon">✦</span><span><strong>Clean My Data</strong><small>Fix common data-quality issues</small></span><em>NEW</em></a>
-          <a className="studioModeTab active" href="/monthly"><span className="studioModeIcon">▦</span><span><strong>Monthly Intelligence</strong><small>Append monthly files and track movement</small></span><em>NEW</em></a>
-          <a className="studioModeTab" href="/compare"><span className="studioModeIcon">↔</span><span><strong>Compare Datasets</strong><small>Find and explain what changed</small></span></a>
-          <a className="studioModeTab" href="/forecast"><span className="studioModeIcon">↗</span><span><strong>Forecast</strong><small>Project a metric into future periods</small></span></a>
-          <a className="studioModeTab" href="/scenario"><span className="studioModeIcon">◇</span><span><strong>Scenario</strong><small>Test assumptions before you decide</small></span></a>
-          <a className="studioModeTab" href="/statistics"><span className="studioModeIcon">Σ</span><span><strong>Statistics</strong><small>Validate relationships and differences</small></span></a>
-        </div>
-      </nav>
-
+    <StudioToolShell active="monthly" title="Monthly Intelligence" subtitle="Append recurring files and track movement over time.">
       <section className="monthlyHero">
         <div className="monthlyHeroInner">
           <div><span className="panelKicker">ANALYTICS INTELLIGENCE · V3.2</span><h1>Turn monthly files into a living analytics history.</h1><p>Add each new CSV or Excel file to a browser-based monthly library. Data Studio detects reporting periods, validates structure, tracks KPI movement, surfaces deterministic business insights, adds configurable KPI alerts, benchmarks performance against history, and packages the findings into an executive-ready PDF report.</p><div className="monthlyTrust"><span>Persistent in this browser</span><span>Exact duplicate protection</span><span>No LLM / AI API</span><span>Up to 20 MB per file</span></div></div>
@@ -631,7 +613,7 @@ export default function MonthlyPage() {
         </div>
       </section>
 
-      <section className="monthlyShell">
+      <section className="monthlyShell" id="monthly-workspace">
         <div className="monthlyStepHeading"><span>01</span><div><small>MONTHLY INGESTION</small><h2>Build your monthly file library</h2><p>Add files as they arrive. Exact duplicate files are skipped automatically, while the originals stay stored locally in this browser for future sessions.</p></div></div>
 
         <div className="monthlyIngestGrid">
@@ -659,7 +641,7 @@ export default function MonthlyPage() {
 
           <div className="monthlyPrepMetrics"><KpiCard label="Files" value={formatNumber(preparation.file_count)} detail={`${formatNumber(preparation.total_rows)} rows`} /><KpiCard label="Reporting periods" value={formatNumber(preparation.period_count)} detail={preparation.periods.length ? `${preparation.periods[0].label} → ${preparation.periods.at(-1)?.label}` : "Not detected"} /><KpiCard label="Shared fields" value={formatNumber(preparation.common_column_count)} detail={`${preparation.metric_candidates.length} numeric metrics`} /><KpiCard label="Schema warnings" value={formatNumber(preparation.schema_warnings.length)} detail={preparation.schema_warnings.length ? "Review before analysis" : "Structure aligned"} tone={preparation.schema_warnings.length ? "warn" : "positive"} /></div>
 
-          <section className="panel monthlyConfigPanel">
+          <section className="panel monthlyConfigPanel" id="monthly-config">
             <div className="panelHeader"><div><span className="panelKicker">ANALYSIS CONTROLS</span><h3>Monthly intelligence settings</h3><p>Defaults are selected automatically. Choose the KPI and comparison lens, then optionally configure an alert threshold or target.</p></div></div>
             <div className="monthlyControls">
               <label><span>Numeric KPI</span><select value={metric} onChange={(event) => metricChanged(event.target.value)}>{preparation.metric_candidates.map((item) => <option key={item.field} value={item.field}>{item.field}</option>)}</select></label>
@@ -683,7 +665,7 @@ export default function MonthlyPage() {
         </>}
 
         {result && <>
-          <div className="monthlyStepHeading monthlyStepThree"><span>03</span><div><small>MONTHLY INTELLIGENCE DASHBOARD</small><h2>{result.comparison.previous_label} → {result.comparison.current_label}</h2><p>Data updated through <strong>{result.periods.at(-1)?.label}</strong>. The findings below are calculated directly from {result.dataset.file_count} monthly files and {formatNumber(result.dataset.total_rows)} records.</p></div><div className="monthlyResultActions"><div className="monthlyUpdated">LAST REFRESH<strong>{new Date(lastRefreshedAt || result.generated_at).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}</strong></div><button className="pdfReportButton monthlyExecutivePdfButton" onClick={() => printToolReport(`Executive Monthly Report - ${result.dataset.metric} - ${result.comparison.current_label}`)}>Generate Executive PDF</button></div></div>
+          <div className="monthlyStepHeading monthlyStepThree" id="monthly-results"><span>03</span><div><small>MONTHLY INTELLIGENCE DASHBOARD</small><h2>{result.comparison.previous_label} → {result.comparison.current_label}</h2><p>Data updated through <strong>{result.periods.at(-1)?.label}</strong>. The findings below are calculated directly from {result.dataset.file_count} monthly files and {formatNumber(result.dataset.total_rows)} records.</p></div><div className="monthlyResultActions"><div className="monthlyUpdated">LAST REFRESH<strong>{new Date(lastRefreshedAt || result.generated_at).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}</strong></div><button className="pdfReportButton monthlyExecutivePdfButton" onClick={() => printToolReport(`Executive Monthly Report - ${result.dataset.metric} - ${result.comparison.current_label}`)}>Generate Executive PDF</button></div></div>
 
           <div className="monthlyDashboardKpis"><KpiCard label={`${result.dataset.metric} · previous`} value={formatMetric(result.comparison.previous_value)} detail={result.comparison.previous_label} /><KpiCard label={`${result.dataset.metric} · current`} value={formatMetric(result.comparison.current_value)} detail={result.comparison.current_label} /><KpiCard label="Period movement" value={formatPercent(result.comparison.change_percent, true)} detail={`${result.comparison.change >= 0 ? "+" : ""}${formatMetric(result.comparison.change)} absolute`} tone={result.comparison.change > 0 ? "positive" : result.comparison.change < 0 ? "negative" : "default"} /><KpiCard label="KPI alert" value={result.alerts.status} detail={result.alerts.triggered_count ? `${result.alerts.triggered_count} rule${result.alerts.triggered_count === 1 ? "" : "s"} triggered` : `${formatNumber(result.alerts.threshold_percent, 0)}% threshold`} tone={result.alerts.status === "Alert" ? "warn" : "positive"} /></div>
 
@@ -727,13 +709,13 @@ export default function MonthlyPage() {
 
           {result.quality.new_values.length > 0 && <section className="panel monthlyNewValues"><div className="panelHeader"><div><span className="panelKicker">NEW VALUES DETECTED</span><h3>Categories appearing in the current period</h3><p>Useful for spotting new products, regions, customers, status values or coding changes.</p></div></div><div className="monthlyNewValueGrid">{result.quality.new_values.slice(0, 12).map((item, index) => <div key={`${item.field}-${item.value}-${index}`}><span>{item.field}</span><strong>{item.value}</strong><small>{formatNumber(item.count)} current record{item.count === 1 ? "" : "s"}</small></div>)}</div></section>}
 
-          <MonthlyExecutivePdfReport result={result} />
+          <div id="monthly-report"><MonthlyExecutivePdfReport result={result} /></div>
 
           <section className="monthlyMethod"><span className="panelKicker">HOW V3.2 WORKS</span><p>{result.method}</p></section>
         </>}
       </section>
 
       <footer className="siteFooter"><strong>Azhan Data Studio</strong><span>Created by Azhan Hassan · Data &amp; AI Automation Specialist</span><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href={PORTFOLIO_URL} target="_blank" rel="noreferrer">View Portfolio ↗</a><a className="footerSupport" href={SUPPORT_URL || "#support"} target={SUPPORT_URL ? "_blank" : undefined} rel={SUPPORT_URL ? "noreferrer" : undefined}>☕ Support the project</a></footer>
-    </main>
+    </StudioToolShell>
   );
 }

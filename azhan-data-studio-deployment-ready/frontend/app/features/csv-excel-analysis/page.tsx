@@ -14,7 +14,7 @@ export default function CsvExcelAnalysisPage() {
     eyebrow="ONLINE EXCEL & CSV DATA ANALYSIS"
     title="Analyse Excel and CSV data online without building charts first."
     lead="Upload a business dataset and Azhan Data Studio automatically profiles the fields, checks data quality, surfaces ranked findings and recommends useful visuals so you can understand what matters faster."
-    toolHref="/"
+    toolHref="/studio"
     toolLabel="Analyse my data"
     secondaryHref="/guides/analyse-excel-data-online"
     secondaryLabel="Read the Excel analysis guide"

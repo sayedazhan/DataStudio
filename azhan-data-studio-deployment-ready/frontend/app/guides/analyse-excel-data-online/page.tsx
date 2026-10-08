@@ -15,7 +15,7 @@ export default function GuidePage() {
     title="How to Analyse Excel Data Online Without Building Charts First"
     lead="A faster workflow for understanding a spreadsheet: profile the fields, check data quality, surface important patterns and only then decide which charts or reports are worth using."
     pagePath="/guides/analyse-excel-data-online"
-    toolHref="/"
+    toolHref="/studio"
     toolLabel="Analyse my Excel file"
     steps={[
       { title: "Choose the right sheet", description: "Select a sheet containing one consistent data table rather than a presentation sheet with titles, merged cells or multiple separate tables." },

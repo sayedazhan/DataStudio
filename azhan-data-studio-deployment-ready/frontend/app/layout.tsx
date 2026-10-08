@@ -4,12 +4,12 @@ import { CREATOR_NAME, CREATOR_URL, SITE_NAME, SITE_URL } from "./lib/seo";
 import GoogleAnalytics from "./components/google-analytics";
 
 const description =
-  "Analyse CSV and Excel data online and automatically generate interactive dashboards with data quality checks, ranked insights, visual discovery, comparisons, forecasting, scenario analysis and statistical tools.";
+  "Turn Excel and CSV files into decision-ready intelligence with automatic analysis, data quality checks, dashboards, comparisons, forecasting, statistics and professional reports.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Free CSV & Excel Data Analysis Tool | Azhan Data Studio",
+    default: "Azhan Data Studio | Excel & CSV Analytics, Dashboards and Reports",
     template: "%s | Azhan Data Studio",
   },
   description,
@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     locale: "en_AU",
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: "Free CSV & Excel Data Analysis Tool | Azhan Data Studio",
+    title: "Azhan Data Studio | Excel & CSV Analytics, Dashboards and Reports",
     description,
     images: [
       {
@@ -63,7 +63,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Free CSV & Excel Data Analysis Tool | Azhan Data Studio",
+    title: "Azhan Data Studio | Excel & CSV Analytics, Dashboards and Reports",
     description,
     images: ["/opengraph-image"],
   },
@@ -88,13 +88,13 @@ const structuredData = {
       "@type": "SoftwareApplication",
       "@id": `${SITE_URL}/#software`,
       name: SITE_NAME,
-      url: SITE_URL,
+      url: `${SITE_URL}/studio`,
       applicationCategory: "BusinessApplication",
       applicationSubCategory: "Data Analytics",
       operatingSystem: "Web",
       browserRequirements: "Requires a modern web browser",
       description,
-      softwareVersion: "4.1.1",
+      softwareVersion: "5.2.0",
       isAccessibleForFree: true,
       offers: {
         "@type": "Offer",
@@ -102,7 +102,17 @@ const structuredData = {
         priceCurrency: "AUD",
       },
       creator: { "@id": `${SITE_URL}/#creator` },
+      provider: { "@id": `${SITE_URL}/#organization` },
       featureList: ["CSV and Excel analysis", "Automatic interactive dashboard generation", "Dashboard filtering and customisation", "Data quality checks", "Dataset comparison", "Forecasting", "Scenario analysis", "Statistical analysis", "Data cleaning"],
+    },
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: SITE_NAME,
+      url: SITE_URL,
+      logo: `${SITE_URL}/icon.svg`,
+      founder: { "@id": `${SITE_URL}/#creator` },
+      sameAs: [CREATOR_URL, "https://www.linkedin.com/in/azhan-hassan-18206114/"],
     },
     {
       "@type": "Person",

@@ -1,9 +1,11 @@
 "use client";
 
+import StudioToolShell from "../components/studio-tool-shell";
+
 import { apiFetch } from "../lib/api";
 
 import { ChangeEvent, useMemo, useRef, useState } from "react";
-import { ToolPdfReport, ToolPdfSection, printToolReport } from "../components/tool-report";
+import { ToolPdfReport, ToolPdfSection, printToolReport, ToolPdfSeriesChart } from "../components/tool-report";
 import { PORTFOLIO_URL, SUPPORT_URL } from "../lib/config";
 
 type WorkbookSheet = {
@@ -402,33 +404,8 @@ export default function ForecastPage() {
   }
 
   return (
-    <main>
-      <header className="topbar">
-        <a className="brand" href="/" aria-label="Azhan Data Studio home">
-          <DataStudioMark />
-          <span className="brandText"><strong>Azhan Data Studio</strong><small>Automated Data Intelligence</small></span>
-        </a>
-        <div className="topbarActions">
-          <a className="creatorBadge" href={PORTFOLIO_URL} target="_blank" rel="noreferrer" aria-label="View Azhan Hassan portfolio">
-            <span className="creatorLabel">CREATED BY</span><span className="creatorName">Azhan Hassan</span><span className="creatorRole">Data &amp; AI Automation Specialist</span><span className="portfolioCta">View Portfolio ↗</span>
-          </a>
-          <a className="supportTopButton" href={SUPPORT_URL || "#support"} target={SUPPORT_URL ? "_blank" : undefined} rel={SUPPORT_URL ? "noreferrer" : undefined}>☕ Support</a>
-        </div>
-      </header>
-
-      <nav className="studioModeBar" aria-label="Choose analysis mode">
-        <div className="studioModeInner">
-          <a className="studioModeTab" href="/"><span className="studioModeIcon">▤</span><span><strong>Analyse Single File</strong><small>Discover insights, quality and visuals</small></span></a>
-          <a className="studioModeTab" href="/clean"><span className="studioModeIcon">✦</span><span><strong>Clean My Data</strong><small>Fix common data-quality issues</small></span><em>NEW</em></a>
-          <a className="studioModeTab" href="/monthly"><span className="studioModeIcon">▦</span><span><strong>Monthly Intelligence</strong><small>Append monthly files and track movement</small></span><em>NEW</em></a>
-          <a className="studioModeTab" href="/compare"><span className="studioModeIcon">↔</span><span><strong>Compare Datasets</strong><small>Find and explain what changed</small></span></a>
-          <a className="studioModeTab active" href="/forecast"><span className="studioModeIcon">↗</span><span><strong>Forecast</strong><small>Project a metric into future periods</small></span></a>
-          <a className="studioModeTab" href="/scenario"><span className="studioModeIcon">◇</span><span><strong>Scenario</strong><small>Test assumptions before you decide</small></span></a>
-          <a className="studioModeTab" href="/statistics"><span className="studioModeIcon">Σ</span><span><strong>Statistics</strong><small>Validate relationships and differences</small></span><em>NEW</em></a>
-        </div>
-      </nav>
-
-      <section className="forecastHero">
+    <StudioToolShell active="forecast" title="Forecast" subtitle="Project a numeric metric into future periods.">
+    <section className="forecastHero">
         <div className="forecastHeroInner">
           <div className="forecastHeroCopy">
             <span className="panelKicker">FORECAST STUDIO · DECISION INTELLIGENCE</span>
@@ -459,7 +436,7 @@ export default function ForecastPage() {
         {preparation?.ready && (
           <>
             <div className="forecastStepHeading forecastStepTwo"><span>02</span><div><small>CONFIGURE SERIES</small><h2>Choose what you want to forecast</h2><p>Data Studio recommends likely fields, but you remain in control of the series definition.</p></div></div>
-            <section className="panel forecastConfigPanel">
+            <section className="panel forecastConfigPanel" id="forecast-setup">
               <div className="forecastConfigGrid">
                 <label><span>Date field</span><select value={dateField} onChange={(event) => { setDateField(event.target.value); resetResult(); }}>{preparation.date_candidates.map((item) => <option key={item.field} value={item.field}>{item.field}{item.field === preparation.recommended_date ? " · Recommended" : ""}</option>)}</select><small>{dateCandidate ? `${formatNumber(dateCandidate.parse_percent, 1)}% parseable · ${formatNumber(dateCandidate.unique_dates)} unique dates` : "Choose a date field"}</small></label>
                 <label><span>Metric</span><select value={metricField} onChange={(event) => { setMetricField(event.target.value); resetResult(); }}>{preparation.metric_candidates.map((item) => <option key={item.field} value={item.field}>{item.field}{item.field === preparation.recommended_metric ? " · Recommended" : ""}</option>)}</select><small>{metricCandidate ? `Mean ${formatNumber(metricCandidate.mean, 2)} · ${formatNumber(metricCandidate.non_null)} values` : "Choose a numeric measure"}</small></label>
@@ -476,7 +453,7 @@ export default function ForecastPage() {
 
         {result && (
           <>
-            <div className="forecastStepHeading forecastStepThree unifiedDashboardHeading"><span>03</span><div><small>FORECAST DASHBOARD</small><h2>{result.configuration.metric_field} outlook</h2><p>{result.configuration.aggregation === "sum" ? "Total" : "Average"} by {result.configuration.frequency} period · {result.configuration.horizon}-period horizon.</p></div><div className="dashboardActionGroup"><button className="pdfReportButton" onClick={() => printToolReport(`Forecast Report - ${result.configuration.metric_field}`)}>Download PDF Report</button><button className="forecastResetButton" onClick={resetAll}>Analyse another file</button></div></div>
+            <div className="forecastStepHeading forecastStepThree unifiedDashboardHeading" id="forecast-results"><span>03</span><div><small>FORECAST DASHBOARD</small><h2>{result.configuration.metric_field} outlook</h2><p>{result.configuration.aggregation === "sum" ? "Total" : "Average"} by {result.configuration.frequency} period · {result.configuration.horizon}-period horizon.</p></div><div className="dashboardActionGroup"><button className="pdfReportButton" onClick={() => printToolReport(`Forecast Report - ${result.configuration.metric_field}`)}>Download PDF Report</button><button className="forecastResetButton" onClick={resetAll}>Analyse another file</button></div></div>
 
             <div className="forecastSummaryGrid">
               <article><span>NEXT FORECAST</span><strong>{formatNumber(result.summary.next_forecast, 2)}</strong><small className={(result.summary.next_forecast_change_percent ?? 0) > 0 ? "positive" : (result.summary.next_forecast_change_percent ?? 0) < 0 ? "negative" : ""}>{formatPercent(result.summary.next_forecast_change_percent)} vs latest actual</small></article>
@@ -505,7 +482,7 @@ export default function ForecastPage() {
             </div>
 
             <div className="forecastDetailGrid">
-              <section className="panel forecastDiagnosticsPanel">
+              <section className="panel forecastDiagnosticsPanel" id="forecast-diagnostics">
                 <div className="forecastPanelHeader"><div><span className="panelKicker">MODEL DIAGNOSTICS</span><h3>How much should you trust it?</h3><p>Evidence about trend, repeated seasonal structure and holdout performance.</p></div></div>
                 <div className="forecastDiagnosticsList">
                   <div><span>Model</span><strong>{result.diagnostics.model}</strong></div>
@@ -545,6 +522,10 @@ export default function ForecastPage() {
               <ToolPdfSection eyebrow="Executive summary" title="Forecast interpretation">
                 <div className="toolPdfFindingList">{result.highlights.slice(0, 6).map((item, index) => <article key={`${item.type}-${index}`}><span>{index + 1}</span><div><strong>{item.title}</strong><p>{item.detail}</p></div></article>)}</div>
               </ToolPdfSection>
+              <ToolPdfSection eyebrow="Performance outlook" title="Historical trajectory and forecast">
+                <ToolPdfSeriesChart points={[...result.history.map((point) => ({ label: formatDateLabel(point.date, result.configuration.frequency), value: point.value, kind: "actual" as const })), ...result.forecast.map((point) => ({ label: formatDateLabel(point.date, result.configuration.frequency), value: point.value, kind: "forecast" as const }))]} />
+                <div className="toolPdfChartLegend"><span><i className="actual"/>Actual</span><span><i className="forecast"/>Forecast</span></div>
+              </ToolPdfSection>
               <ToolPdfSection eyebrow="Forecast register" title="Future periods and uncertainty range">
                 <table className="toolPdfTable"><thead><tr><th>Period</th><th>Forecast</th><th>Lower range</th><th>Upper range</th></tr></thead><tbody>
                   {result.forecast.map((point) => <tr key={point.date}><td><strong>{formatDateLabel(point.date, result.configuration.frequency)}</strong></td><td>{formatNumber(point.value, 2)}</td><td>{formatNumber(point.lower, 2)}</td><td>{formatNumber(point.upper, 2)}</td></tr>)}
@@ -570,6 +551,6 @@ export default function ForecastPage() {
           {SUPPORT_URL ? <a className="supportPrimaryButton" href={SUPPORT_URL} target="_blank" rel="noreferrer">☕ Support development</a> : <span className="supportPending">Data Studio support link not configured</span>}
         </section>
       </section>
-    </main>
+    </StudioToolShell>
   );
 }

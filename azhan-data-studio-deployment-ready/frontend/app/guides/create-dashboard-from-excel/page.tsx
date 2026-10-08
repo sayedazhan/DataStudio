@@ -15,7 +15,7 @@ export default function GuidePage() {
     title="How to Automatically Create a Dashboard From Excel"
     lead="Turn a structured Excel table into KPIs, trends, category breakdowns and filters without manually building every chart."
     pagePath="/guides/create-dashboard-from-excel"
-    toolHref="/"
+    toolHref="/studio"
     toolLabel="Create my dashboard"
     steps={[
       { title: "Use a clean table", description: "Keep one header row, one record per row and one field per column. Avoid merged cells, decorative titles and subtotal rows inside the dataset." },

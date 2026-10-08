@@ -14,7 +14,7 @@ export default function DataQualityCheckerPage() {
     eyebrow="EXCEL & CSV DATA QUALITY CHECKER"
     title="Check Excel and CSV data quality online."
     lead="Upload an Excel or CSV file and automatically check for missing values, duplicate rows, inconsistent data and unusual numeric values. Review the evidence before you clean, analyse or report on the dataset."
-    toolHref="/"
+    toolHref="/studio"
     toolLabel="Check my dataset"
     secondaryHref="/guides/check-excel-data-quality"
     secondaryLabel="Read the data quality guide"

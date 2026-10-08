@@ -1,9 +1,10 @@
 "use client";
 
 import { apiFetch } from "../lib/api";
+import StudioToolShell from "../components/studio-tool-shell";
 
 import { ChangeEvent, useMemo, useRef, useState } from "react";
-import { ToolPdfReport, ToolPdfSection, printToolReport } from "../components/tool-report";
+import { ToolPdfReport, ToolPdfSection, printToolReport, ToolPdfBars } from "../components/tool-report";
 import { PORTFOLIO_URL, SUPPORT_URL } from "../lib/config";
 
 type WorkbookSheet = { index: number; name: string; rows: number; columns: number; analysis_ready: boolean; classification: string; recommended: boolean; };
@@ -160,31 +161,16 @@ export default function ScenarioPage() {
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" }); const href = URL.createObjectURL(blob); const anchor = document.createElement("a"); anchor.href = href; anchor.download = "azhan-data-studio-scenario.csv"; anchor.click(); URL.revokeObjectURL(href);
   }
 
-  return <main>
-    <header className="topbar">
-      <a className="brand" href="/" aria-label="Azhan Data Studio home"><DataStudioMark /><span className="brandText"><strong>Azhan Data Studio</strong><small>Automated Data Intelligence</small></span></a>
-      <div className="topbarActions"><a className="creatorBadge" href={PORTFOLIO_URL} target="_blank" rel="noreferrer"><span className="creatorLabel">CREATED BY</span><span className="creatorName">Azhan Hassan</span><span className="creatorRole">Data &amp; AI Automation Specialist</span><span className="portfolioCta">View Portfolio ↗</span></a><a className="supportTopButton" href={SUPPORT_URL || "#support"} target={SUPPORT_URL ? "_blank" : undefined} rel={SUPPORT_URL ? "noreferrer" : undefined}>☕ Support</a></div>
-    </header>
-
-    <nav className="studioModeBar" aria-label="Choose analysis mode"><div className="studioModeInner">
-      <a className="studioModeTab" href="/"><span className="studioModeIcon">▤</span><span><strong>Analyse Single File</strong><small>Discover insights, quality and visuals</small></span></a>
-          <a className="studioModeTab" href="/clean"><span className="studioModeIcon">✦</span><span><strong>Clean My Data</strong><small>Fix common data-quality issues</small></span><em>NEW</em></a>
-      <a className="studioModeTab" href="/monthly"><span className="studioModeIcon">▦</span><span><strong>Monthly Intelligence</strong><small>Append monthly files and track movement</small></span><em>NEW</em></a>
-          <a className="studioModeTab" href="/compare"><span className="studioModeIcon">↔</span><span><strong>Compare Datasets</strong><small>Find and explain what changed</small></span></a>
-      <a className="studioModeTab" href="/forecast"><span className="studioModeIcon">↗</span><span><strong>Forecast</strong><small>Project a metric into future periods</small></span></a>
-      <a className="studioModeTab active" href="/scenario"><span className="studioModeIcon">◇</span><span><strong>Scenario</strong><small>Test assumptions before you decide</small></span></a>
-      <a className="studioModeTab" href="/statistics"><span className="studioModeIcon">Σ</span><span><strong>Statistics</strong><small>Validate relationships and differences</small></span><em>NEW</em></a>
-    </div></nav>
-
+  return <StudioToolShell active="scenario" title="Scenario" subtitle="Model Base, Upside and Downside outcomes with transparent assumptions.">
     <section className="scenarioHero"><div className="scenarioHeroInner"><div><span className="panelKicker">SCENARIO STUDIO · WHAT-IF ANALYSIS</span><h1>Model the decision before you make it.</h1><p>Turn business assumptions into transparent Base, Upside and Downside cases. Choose the measures that matter, define how they combine, then see the modelled impact instantly.</p><div className="scenarioTrustRow"><span>Deterministic calculations</span><span>User-controlled assumptions</span><span>No AI-generated numbers</span><span>Up to 20 MB</span></div></div><div className="scenarioHeroPreview" aria-hidden="true"><i className="down">−</i><i className="base">•</i><i className="up">+</i><strong>Downside · Base · Upside</strong><small>Change assumptions → recalculate outcome</small></div></div></section>
 
-    <section className="scenarioShell">
+    <section className="scenarioShell" id="scenario-workspace">
       <div className="scenarioStepHeading"><span>01</span><div><small>SELECT DATA</small><h2>Upload the dataset behind the decision</h2><p>Choose a CSV or XLSX file with at least one numeric business measure.</p></div></div>
       <section className="panel scenarioUploadPanel"><button type="button" className={`scenarioDropzone ${file ? "hasFile" : ""}`} onClick={() => inputRef.current?.click()}><input ref={inputRef} type="file" hidden accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={(event: ChangeEvent<HTMLInputElement>) => { void chooseFile(event.target.files?.[0]); event.target.value = ""; }} /><span className="scenarioUploadIcon">↑</span><span><strong>{file ? file.name : "Choose CSV or Excel file"}</strong><small>{file ? `${formatBytes(file.size)} · click to replace` : "CSV / XLSX · maximum 20 MB"}</small></span></button>{workbook && <label className="scenarioSheetField"><span>Workbook sheet</span><select value={sheetName} onChange={(event) => void changeSheet(event.target.value)}>{workbook.sheets.filter((sheet) => sheet.analysis_ready).map((sheet) => <option key={sheet.name} value={sheet.name}>{sheet.name} · {formatNumber(sheet.rows)} rows</option>)}</select></label>}{loading && <div className="scenarioStatus">Reading measures and possible scenario dimensions…</div>}{preparation && <div className="scenarioFileMeta"><span>{formatNumber(preparation.dataset.rows)} rows</span><span>{preparation.dataset.columns} fields</span><span>{preparation.metric_candidates.length} numeric measures</span><span>{preparation.dimension_candidates.length} segment fields</span></div>}</section>
 
       {preparation?.ready && <>
         <div className="scenarioStepHeading"><span>02</span><div><small>DEFINE MODEL</small><h2>Tell Data Studio how the outcome is calculated</h2><p>Use one measure directly, or combine two measures into a difference, ratio, product or margin percentage.</p></div></div>
-        <section className="panel scenarioConfigPanel"><div className="scenarioConfigGrid">
+        <section className="panel scenarioConfigPanel" id="scenario-model"><div className="scenarioConfigGrid">
           <label><span>Calculation</span><select value={calculation} onChange={(event) => { const next = event.target.value; setCalculation(next); resetResult(); }}><option value="single">Single metric</option><option value="difference">Metric A − Metric B</option><option value="ratio">Metric A ÷ Metric B (%)</option><option value="product">Metric A × Metric B</option><option value="margin_percent">Margin % = (A − B) ÷ A</option></select><small>Defines the outcome you want to stress-test</small></label>
           <label><span>Metric A</span><select value={metricA} onChange={(event) => { const next = event.target.value; setMetricA(next); if (metricB === next) setMetricB(preparation.metric_candidates.find((item) => item.field !== next)?.field ?? ""); resetResult(); }}>{preparation.metric_candidates.map((item) => <option key={item.field} value={item.field}>{item.field}{item.field === preparation.recommended_metric_a ? " · Recommended" : ""}</option>)}</select><small>{metricACandidate ? `Sum ${formatNumber(metricACandidate.sum, 1)} · Mean ${formatNumber(metricACandidate.mean, 1)}` : "Choose a measure"}</small></label>
           <label><span>Metric A aggregation</span><select value={aggregationA} onChange={(event) => { setAggregationA(event.target.value); resetResult(); }}><option value="sum">Sum</option><option value="mean">Average</option></select><small>How Metric A is reduced to the baseline</small></label>
@@ -194,7 +180,7 @@ export default function ScenarioPage() {
         </div></section>
 
         <div className="scenarioStepHeading"><span>03</span><div><small>SET ASSUMPTIONS</small><h2>Define your Upside and Downside cases</h2><p>Enter percentage adjustments to each selected metric. Nothing is predicted or inferred — these are your assumptions.</p></div></div>
-        <div className="scenarioAssumptionGrid">
+        <div className="scenarioAssumptionGrid" id="scenario-assumptions">
           <section className="panel scenarioAssumptionCard upside"><div><span>UPSIDE CASE</span><strong>What if conditions improve?</strong></div><label><span>{metricA} change</span><div><input type="number" min="-95" max="500" step="1" value={upsideA} onChange={(event) => { setUpsideA(Number(event.target.value)); resetResult(); }} /><b>%</b></div></label>{needsMetricB && <label><span>{metricB} change</span><div><input type="number" min="-95" max="500" step="1" value={upsideB} onChange={(event) => { setUpsideB(Number(event.target.value)); resetResult(); }} /><b>%</b></div></label>}</section>
           <section className="panel scenarioAssumptionCard downside"><div><span>DOWNSIDE CASE</span><strong>What if conditions weaken?</strong></div><label><span>{metricA} change</span><div><input type="number" min="-95" max="500" step="1" value={downsideA} onChange={(event) => { setDownsideA(Number(event.target.value)); resetResult(); }} /><b>%</b></div></label>{needsMetricB && <label><span>{metricB} change</span><div><input type="number" min="-95" max="500" step="1" value={downsideB} onChange={(event) => { setDownsideB(Number(event.target.value)); resetResult(); }} /><b>%</b></div></label>}</section>
           <section className="scenarioRunCard"><span>READY TO MODEL</span><strong>Base → Upside → Downside</strong><p>Data Studio recalculates the outcome and isolates each driver&apos;s effect.</p><button className="scenarioPrimary" onClick={() => void runScenario()} disabled={running}>{running ? "Running scenario…" : "Run what-if analysis"}</button></section>
@@ -204,7 +190,7 @@ export default function ScenarioPage() {
       {error && <div className="errorBox scenarioError">{error}</div>}
 
       {result && <>
-        <div className="scenarioStepHeading scenarioResultHeading unifiedDashboardHeading"><span>04</span><div><small>SCENARIO DASHBOARD</small><h2>{result.configuration.calculation_label}</h2><p>Modelled from the selected dataset and your assumptions.</p></div><div className="scenarioResultActions"><button className="pdfReportButton" onClick={() => printToolReport(`Scenario Report - ${result.configuration.calculation_label}`)}>Download PDF Report</button><button onClick={downloadScenarioCsv}>Download scenario CSV</button><button onClick={resetAll}>Analyse another file</button></div></div>
+        <div className="scenarioStepHeading scenarioResultHeading unifiedDashboardHeading" id="scenario-results"><span>04</span><div><small>SCENARIO DASHBOARD</small><h2>{result.configuration.calculation_label}</h2><p>Modelled from the selected dataset and your assumptions.</p></div><div className="scenarioResultActions"><button className="pdfReportButton" onClick={() => printToolReport(`Scenario Report - ${result.configuration.calculation_label}`)}>Download PDF Report</button><button onClick={downloadScenarioCsv}>Download scenario CSV</button><button onClick={resetAll}>Analyse another file</button></div></div>
         <div className="scenarioSummaryGrid">{result.scenarios.map((item) => <article className={`scenarioSummaryCard ${item.name.toLowerCase()}`} key={item.name}><span>{item.name.toUpperCase()}</span><strong>{outputValue(item.target, result.configuration.output_unit)}</strong><small className={item.delta > 0 ? "positive" : item.delta < 0 ? "negative" : ""}>{item.name === "Base" ? "Current calculated baseline" : `${formatPercent(item.delta_percent)} · ${formatSigned(item.delta, 2)} vs base`}</small></article>)}<article className="scenarioSummaryCard spread"><span>SCENARIO RANGE</span><strong>{outputValue(Math.abs(result.scenarios[1].target - result.scenarios[2].target), result.configuration.output_unit)}</strong><small>Upside-to-downside spread</small></article></div>
 
         <section className="panel unifiedMeaningPanel scenarioMeaningPanel">
@@ -245,6 +231,9 @@ export default function ScenarioPage() {
           <ToolPdfSection eyebrow="Executive summary" title="Decision range">
             <div className="toolPdfFindingList">{result.highlights.slice(0, 6).map((item, index) => <article key={`${item.type}-${index}`}><span>{index + 1}</span><div><strong>{item.title}</strong><p>{item.detail}</p></div></article>)}</div>
           </ToolPdfSection>
+          <ToolPdfSection eyebrow="Scenario comparison" title="Base, Upside and Downside visually">
+            <ToolPdfBars items={result.scenarios.map((item) => ({ label: item.name, value: item.target, display: outputValue(item.target, result.configuration.output_unit), detail: item.name === "Base" ? "Baseline" : `${formatPercent(item.delta_percent)} vs base` }))} valueLabel="Scenario outcomes" />
+          </ToolPdfSection>
           <ToolPdfSection eyebrow="Assumptions" title="What changed in each case">
             <table className="toolPdfTable"><thead><tr><th>Driver</th><th>Upside</th><th>Downside</th></tr></thead><tbody>
               <tr><td><strong>{result.configuration.metric_a}</strong></td><td>{formatPercent(result.assumptions.upside.metric_a_percent)}</td><td>{formatPercent(result.assumptions.downside.metric_a_percent)}</td></tr>
@@ -266,5 +255,5 @@ export default function ScenarioPage() {
 
       <section className="supportLanding" id="support"><div><span className="panelKicker">INDEPENDENTLY BUILT</span><strong>Did Azhan Data Studio save you time?</strong><p>The studio stays free to use. If it helped you analyse, compare, forecast or model a decision, you can support continued development with a one-time contribution.</p></div>{SUPPORT_URL ? <a className="supportPrimaryButton" href={SUPPORT_URL} target="_blank" rel="noreferrer">☕ Support development</a> : <span className="supportPending">Data Studio support link not configured</span>}</section>
     </section>
-  </main>;
+  </StudioToolShell>;
 }

@@ -1,9 +1,11 @@
 "use client";
 
+import StudioToolShell from "../components/studio-tool-shell";
+
 import { apiFetch } from "../lib/api";
 
 import { ChangeEvent, useMemo, useRef, useState } from "react";
-import { ToolPdfReport, ToolPdfSection, printToolReport } from "../components/tool-report";
+import { ToolPdfReport, ToolPdfSection, printToolReport, ToolPdfBars } from "../components/tool-report";
 import { PORTFOLIO_URL, SUPPORT_URL } from "../lib/config";
 
 type WorkbookSheet = {
@@ -431,36 +433,8 @@ export default function ComparePage() {
   const typeChanges = result?.schema_changes.type_changes ?? preparation?.schema_changes.type_changes ?? [];
 
   return (
-    <main>
-      <header className="topbar">
-        <a className="brand" href="/" aria-label="Azhan Data Studio home">
-          <DataStudioMark />
-          <span className="brandText"><strong>Azhan Data Studio</strong><small>Automated Data Intelligence</small></span>
-        </a>
-        <div className="topbarActions">
-          <a className="creatorBadge" href={PORTFOLIO_URL} target="_blank" rel="noreferrer" aria-label="View Azhan Hassan portfolio">
-            <span className="creatorLabel">CREATED BY</span>
-            <span className="creatorName">Azhan Hassan</span>
-            <span className="creatorRole">Data &amp; AI Automation Specialist</span>
-            <span className="portfolioCta">View Portfolio ↗</span>
-          </a>
-          <a className="supportTopButton" href={SUPPORT_URL || "#support"} target={SUPPORT_URL ? "_blank" : undefined} rel={SUPPORT_URL ? "noreferrer" : undefined}>☕ Support</a>
-        </div>
-      </header>
-
-      <nav className="studioModeBar" aria-label="Choose analysis mode">
-        <div className="studioModeInner">
-          <a className="studioModeTab" href="/"><span className="studioModeIcon">▤</span><span><strong>Analyse Single File</strong><small>Discover insights, quality and visuals</small></span></a>
-          <a className="studioModeTab" href="/clean"><span className="studioModeIcon">✦</span><span><strong>Clean My Data</strong><small>Fix common data-quality issues</small></span><em>NEW</em></a>
-          <a className="studioModeTab" href="/monthly"><span className="studioModeIcon">▦</span><span><strong>Monthly Intelligence</strong><small>Append monthly files and track movement</small></span><em>NEW</em></a>
-          <a className="studioModeTab active" href="/compare"><span className="studioModeIcon">↔</span><span><strong>Compare Datasets</strong><small>Find and explain what changed</small></span></a>
-          <a className="studioModeTab" href="/forecast"><span className="studioModeIcon">↗</span><span><strong>Forecast</strong><small>Project a metric into future periods</small></span></a>
-          <a className="studioModeTab" href="/scenario"><span className="studioModeIcon">◇</span><span><strong>Scenario</strong><small>Test assumptions before you decide</small></span></a>
-          <a className="studioModeTab" href="/statistics"><span className="studioModeIcon">Σ</span><span><strong>Statistics</strong><small>Validate relationships and differences</small></span><em>NEW</em></a>
-        </div>
-      </nav>
-
-      <section className="compareHero">
+    <StudioToolShell active="compare" title="Compare Files" subtitle="See what changed between two versions of a dataset.">
+    <section className="compareHero">
         <div className="compareHeroInner">
           <div className="compareHeroCopy">
             <span className="panelKicker">DATASET COMPARE · NEW ANALYSIS TOOL</span>
@@ -509,7 +483,7 @@ export default function ComparePage() {
         {error && <div className="errorBox compareError">{error}</div>}
 
         {preparation && (
-          <section className="compareSetupPanel">
+          <section className="compareSetupPanel" id="compare-setup">
             <div className="compareStepHeading compact"><span>02</span><div><small>MATCH RECORDS</small><h2>Choose the comparison key</h2><p>The key must identify one row uniquely in both datasets. Dataset Compare uses one key field; composite keys come later.</p></div></div>
 
             <div className="comparePrepMetrics">
@@ -695,7 +669,7 @@ export default function ComparePage() {
               </section>
             </div>
 
-            <section className="panel compareRecordsPanel">
+            <section className="panel compareRecordsPanel" id="compare-records">
               <div className="panelHeader"><div><span className="panelKicker">RECORD-LEVEL EVIDENCE</span><h3>What changed row by row</h3><p>Inspect modified records or preview rows that were added and removed.</p></div></div>
               <div className="compareRecordTabs">
                 <button className={recordTab === "modified" ? "active" : ""} onClick={() => setRecordTab("modified")}>Modified <span>{formatNumber(result.summary.modified_records)}</span></button>
@@ -755,8 +729,17 @@ export default function ComparePage() {
                   {result.highlights.slice(0, 6).map((item, index) => <article key={`${item.type}-${index}`}><span>{index + 1}</span><div><strong>{item.title}</strong><p>{item.detail}</p></div></article>)}
                 </div>
               </ToolPdfSection>
+              <ToolPdfSection eyebrow="Change profile" title="Record movement at a glance">
+                <ToolPdfBars items={[
+                  { label: "Added", value: result.summary.added_records, display: `+${formatNumber(result.summary.added_records)}` },
+                  { label: "Removed", value: result.summary.removed_records, display: `−${formatNumber(result.summary.removed_records)}` },
+                  { label: "Modified", value: result.summary.modified_records, display: formatNumber(result.summary.modified_records) },
+                  { label: "Unchanged", value: result.summary.unchanged_records, display: formatNumber(result.summary.unchanged_records) },
+                ]} valueLabel="Record change profile" />
+              </ToolPdfSection>
               {result.metric_changes.length > 0 && <ToolPdfSection eyebrow="Metric movement" title="Largest numeric changes">
-                <table className="toolPdfTable"><thead><tr><th>Metric</th><th>Previous</th><th>Current</th><th>Change</th><th>Change %</th></tr></thead><tbody>
+                <ToolPdfBars items={result.metric_changes.slice(0, 6).map((metric) => ({ label: metric.field, value: metric.sum_change, display: formatSigned(metric.sum_change, 2), detail: formatPercent(metric.sum_change_percent) }))} valueLabel="Largest metric changes" />
+                <table className="toolPdfTable toolPdfTableAfterChart"><thead><tr><th>Metric</th><th>Previous</th><th>Current</th><th>Change</th><th>Change %</th></tr></thead><tbody>
                   {result.metric_changes.slice(0, 12).map((metric) => <tr key={metric.field}><td><strong>{metric.field}</strong></td><td>{formatDecimal(metric.previous_sum, 2)}</td><td>{formatDecimal(metric.current_sum, 2)}</td><td>{formatSigned(metric.sum_change, 2)}</td><td>{formatPercent(metric.sum_change_percent)}</td></tr>)}
                 </tbody></table>
               </ToolPdfSection>}
@@ -777,6 +760,6 @@ export default function ComparePage() {
       </section>
 
       <footer className="siteFooter"><strong>Azhan Data Studio</strong><span>Created by Azhan Hassan · Data &amp; AI Automation Specialist</span><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href={PORTFOLIO_URL} target="_blank" rel="noreferrer">View Portfolio ↗</a><a className="footerSupport" href={SUPPORT_URL || "#support"} target={SUPPORT_URL ? "_blank" : undefined} rel={SUPPORT_URL ? "noreferrer" : undefined}>☕ Support the project</a></footer>
-    </main>
+    </StudioToolShell>
   );
 }

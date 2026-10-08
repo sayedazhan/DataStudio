@@ -78,7 +78,7 @@ export function SeoGuidePage({ eyebrow, title, lead, pagePath, toolHref, toolLab
   return <main className="seoFeaturePage seoGuidePage">
     <header className="topbar seoTopbar">
       <a className="brand" href="/" aria-label={`${SITE_NAME} home`}><DataStudioMark /><span className="brandText"><strong>{SITE_NAME}</strong><small>Automated Data Intelligence</small></span></a>
-      <div className="seoHeaderActions"><a className="seoHeaderLink" href="/features">Tools & Guides</a><a className="seoHeaderLink" href="/">Open Studio</a>{SUPPORT_URL ? <a className="supportTopButton" href={SUPPORT_URL} target="_blank" rel="noreferrer">☕ Support</a> : null}</div>
+      <div className="seoHeaderActions"><a className="seoHeaderLink" href="/features">Tools & Guides</a><a className="seoHeaderLink" href="/studio">Open Studio</a>{SUPPORT_URL ? <a className="supportTopButton" href={SUPPORT_URL} target="_blank" rel="noreferrer">☕ Support</a> : null}</div>
     </header>
 
     <article>

@@ -1,9 +1,11 @@
 "use client";
 
+import StudioToolShell from "../components/studio-tool-shell";
+
 import { apiFetch } from "../lib/api";
 
 import { ChangeEvent, useMemo, useRef, useState } from "react";
-import { ToolPdfReport, ToolPdfSection, printToolReport } from "../components/tool-report";
+import { ToolPdfReport, ToolPdfSection, printToolReport, ToolPdfBars, ToolPdfScatter, ToolPdfRangeBand } from "../components/tool-report";
 import { PORTFOLIO_URL, SUPPORT_URL } from "../lib/config";
 
 type WorkbookSheet = { index: number; name: string; rows: number; columns: number; analysis_ready: boolean; classification: string; recommended: boolean; };
@@ -184,6 +186,7 @@ function StatisticsPdfReport({ result }: { result: StatisticsResult }) {
       { label: "Usable rows", value: formatNumber(s.n, 0) }, { label: "Shape", value: shapePlain(s.shape) },
     ]} methodology={result.method} caveat={result.caveat}>
       <ToolPdfSection eyebrow="Plain-English conclusion" title="What the distribution tells you"><p>{result.interpretation}</p></ToolPdfSection>
+      <ToolPdfSection eyebrow="Distribution visual" title="Range and quartiles"><ToolPdfRangeBand minimum={s.minimum} q1={s.q1} median={s.median} q3={s.q3} maximum={s.maximum} /></ToolPdfSection>
       <ToolPdfSection eyebrow="Distribution summary" title="Range, middle and variation"><div className="toolPdfTwoCol"><div><div className="toolPdfKeyValue"><span>Minimum</span><strong>{formatNumber(s.minimum,2)}</strong></div><div className="toolPdfKeyValue"><span>Q1</span><strong>{formatNumber(s.q1,2)}</strong></div><div className="toolPdfKeyValue"><span>Median</span><strong>{formatNumber(s.median,2)}</strong></div></div><div><div className="toolPdfKeyValue"><span>Q3</span><strong>{formatNumber(s.q3,2)}</strong></div><div className="toolPdfKeyValue"><span>Maximum</span><strong>{formatNumber(s.maximum,2)}</strong></div><div className="toolPdfKeyValue"><span>Std. deviation</span><strong>{formatNumber(s.std_dev,2)}</strong></div></div></div></ToolPdfSection>
     </ToolPdfReport>;
   }
@@ -195,6 +198,7 @@ function StatisticsPdfReport({ result }: { result: StatisticsResult }) {
       { label: "Rows compared", value: formatNumber(result.n,0) }, { label: "Pearson r", value: result.pearson.r.toFixed(3) }, { label: "p-value", value: formatP(result.pearson.p_value) },
     ]} methodology={result.method} caveat={result.caveat}>
       <ToolPdfSection eyebrow="Plain-English conclusion" title="Do the measures move together?"><p>{result.interpretation}</p></ToolPdfSection>
+      <ToolPdfSection eyebrow="Relationship visual" title={`${result.field_a} vs ${result.field_b}`}><ToolPdfScatter points={result.scatter} /></ToolPdfSection>
       <ToolPdfSection eyebrow="Evidence" title="Relationship details"><div className="toolPdfTwoCol"><div><div className="toolPdfKeyValue"><span>Pearson relationship</span><strong>{result.pearson.label}</strong></div><div className="toolPdfKeyValue"><span>Evidence</span><strong>{evidence.label}</strong></div></div><div><div className="toolPdfKeyValue"><span>Spearman relationship</span><strong>{result.spearman.label}</strong></div><div className="toolPdfKeyValue"><span>Spearman ρ</span><strong>{result.spearman.rho.toFixed(3)}</strong></div></div></div></ToolPdfSection>
     </ToolPdfReport>;
   }
@@ -205,6 +209,7 @@ function StatisticsPdfReport({ result }: { result: StatisticsResult }) {
       { label:"Gap", value:formatNumber(Math.abs(result.result.difference),2) }, { label:"Practical size", value:practicalSize(result.result.effect_label) }, { label:"Evidence", value:evidence.short }, { label:"Groups", value:String(result.groups.length) },
     ]} methodology={result.method} caveat={result.caveat}>
       <ToolPdfSection eyebrow="Plain-English conclusion" title="Are the groups really different?"><p>{result.interpretation}</p></ToolPdfSection>
+      <ToolPdfSection eyebrow="Group comparison" title="Average by group"><ToolPdfBars items={result.groups.slice(0, 10).map((g) => ({ label: g.group, value: g.mean, display: formatNumber(g.mean,2), detail: `${formatNumber(g.n,0)} rows` }))} valueLabel="Group averages" /></ToolPdfSection>
       <ToolPdfSection eyebrow="Group evidence" title="Average by group"><table className="toolPdfTable"><thead><tr><th>Group</th><th>Rows</th><th>Average</th><th>Likely average range</th></tr></thead><tbody>{result.groups.map((g)=><tr key={g.group}><td><strong>{g.group}</strong></td><td>{formatNumber(g.n,0)}</td><td>{formatNumber(g.mean,2)}</td><td>{formatNumber(g.ci_lower,2)}–{formatNumber(g.ci_upper,2)}</td></tr>)}</tbody></table></ToolPdfSection>
     </ToolPdfReport>;
   }
@@ -213,6 +218,7 @@ function StatisticsPdfReport({ result }: { result: StatisticsResult }) {
     { label:"Connection size", value:practicalSize(result.result.effect_label) }, { label:"Evidence", value:evidence.short }, { label:"Rows used", value:formatNumber(result.n,0) }, { label:"Cramér's V", value:formatNumber(result.result.cramers_v,3) }, { label:"p-value", value:formatP(result.result.p_value) }, { label:"Category combinations", value:String(result.result.expected_cells) },
   ]} methodology={result.method} caveat={result.caveat}>
     <ToolPdfSection eyebrow="Plain-English conclusion" title="Are the categories connected?"><p>{result.interpretation}</p></ToolPdfSection>
+    <ToolPdfSection eyebrow="Category profile" title={`Largest ${result.field_a} groups`}><ToolPdfBars items={result.table.slice(0, 10).map((row) => ({ label: row.row, value: row.total, display: formatNumber(row.total,0) }))} valueLabel="Category totals" /></ToolPdfSection>
     <ToolPdfSection eyebrow="Category evidence" title="Observed counts"><table className="toolPdfTable"><thead><tr><th>{result.field_a}</th>{result.columns.map((c)=><th key={c}>{c}</th>)}<th>Total</th></tr></thead><tbody>{result.table.map((row)=><tr key={row.row}><td><strong>{row.row}</strong></td>{row.counts.map((cell)=><td key={cell.column}>{formatNumber(cell.count,0)}</td>)}<td>{formatNumber(row.total,0)}</td></tr>)}</tbody></table></ToolPdfSection>
   </ToolPdfReport>;
 }
@@ -242,17 +248,7 @@ export default function StatisticsPage() {
   ];
   const currentMode = modes.find((item)=>item.id===mode);
 
-  return <main>
-    <header className="topbar"><a className="brand" href="/" aria-label="Azhan Data Studio home"><DataStudioMark/><span className="brandText"><strong>Azhan Data Studio</strong><small>Automated Data Intelligence</small></span></a><div className="topbarActions"><a className="creatorBadge" href={PORTFOLIO_URL} target="_blank" rel="noreferrer"><span className="creatorLabel">CREATED BY</span><span className="creatorName">Azhan Hassan</span><span className="creatorRole">Data &amp; AI Automation Specialist</span><span className="portfolioCta">View Portfolio ↗</span></a><a className="supportTopButton" href={SUPPORT_URL||"#support"} target={SUPPORT_URL?"_blank":undefined} rel={SUPPORT_URL?"noreferrer":undefined}>☕ Support</a></div></header>
-    <nav className="studioModeBar" aria-label="Choose analysis mode"><div className="studioModeInner">
-      <a className="studioModeTab" href="/"><span className="studioModeIcon">▤</span><span><strong>Analyse Single File</strong><small>Discover insights, quality and visuals</small></span></a>
-          <a className="studioModeTab" href="/clean"><span className="studioModeIcon">✦</span><span><strong>Clean My Data</strong><small>Fix common data-quality issues</small></span><em>NEW</em></a>
-      <a className="studioModeTab" href="/monthly"><span className="studioModeIcon">▦</span><span><strong>Monthly Intelligence</strong><small>Append monthly files and track movement</small></span><em>NEW</em></a>
-          <a className="studioModeTab" href="/compare"><span className="studioModeIcon">↔</span><span><strong>Compare Datasets</strong><small>Find and explain what changed</small></span></a>
-      <a className="studioModeTab" href="/forecast"><span className="studioModeIcon">↗</span><span><strong>Forecast</strong><small>Project a metric into future periods</small></span></a>
-      <a className="studioModeTab" href="/scenario"><span className="studioModeIcon">◇</span><span><strong>Scenario</strong><small>Test assumptions before you decide</small></span></a>
-      <a className="studioModeTab active" href="/statistics"><span className="studioModeIcon">Σ</span><span><strong>Statistics</strong><small>Check whether a pattern has real evidence</small></span><em>NEW</em></a>
-    </div></nav>
+  return <StudioToolShell active="statistics" title="Statistics" subtitle="Validate distributions, relationships and group differences.">
     <section className="statisticsHero"><div className="statisticsHeroInner"><div><span className="panelKicker">STATISTICS DASHBOARD · EVIDENCE MADE SIMPLE</span><h1>Is the pattern real — or just noise?</h1><p>Choose a simple question. Data Studio runs the correct statistical test behind the scenes and gives you the answer in everyday language first. Technical details are still available when you need them.</p><div className="statisticsTrustRow"><span>Plain-English results</span><span>Visual evidence</span><span>Technical details on demand</span><span>No AI-generated numbers</span></div></div><div className="statisticsHeroPreview" aria-hidden="true"><b>95%</b><strong>Clear evidence, explained simply</strong><small>Answer first · statistics underneath</small><div><i/><i/><i/><i/></div></div></div></section>
     <section className="statisticsShell">
       <div className="statisticsStepHeading"><span>01</span><div><small>CHOOSE YOUR DATA</small><h2>What dataset do you want to investigate?</h2><p>Upload a CSV or Excel file. Data Studio will work out which number and category fields can be tested.</p></div></div>
@@ -260,7 +256,7 @@ export default function StatisticsPage() {
       {preparation?.ready&&<section className="statisticsWorkspace">
         <aside className="statisticsQuestionRail"><div className="statisticsRailTitle"><span className="panelKicker">02 · YOUR QUESTION</span><h2>What do you want to find out?</h2><p>Pick the question that sounds closest to what you are trying to understand.</p></div><div className="statisticsModeGrid">{modes.map((item)=>{const enabled=preparation.available_modes.includes(item.id); return <button key={item.id} disabled={!enabled} className={mode===item.id?"active":""} onClick={()=>{setMode(item.id);resetResult();}}><span>{item.icon}</span><strong>{item.title}</strong><small>{item.desc}</small><em>{enabled?item.technical:"Not enough usable fields"}</em></button>;})}</div></aside>
         <div className="statisticsWorkspaceMain">
-          <section className="panel statisticsConfigPanel"><div className="statisticsConfigIntro"><div><span className="panelKicker">SET UP THE QUESTION</span><h3>{currentMode?.title}</h3><p>{currentMode?.desc}</p></div>{file&&<button className="statisticsReset compact" onClick={resetAll}>Change dataset</button>}</div><div className="statisticsConfigGrid">
+          <section className="panel statisticsConfigPanel" id="statistics-question"><div className="statisticsConfigIntro"><div><span className="panelKicker">SET UP THE QUESTION</span><h3>{currentMode?.title}</h3><p>{currentMode?.desc}</p></div>{file&&<button className="statisticsReset compact" onClick={resetAll}>Change dataset</button>}</div><div className="statisticsConfigGrid">
             {(mode==="summary"||mode==="correlation"||mode==="group_comparison")&&<label><span>{mode==="summary"?"Measure to understand":mode==="group_comparison"?"Measure to compare":"First measure"}</span><select value={numericField} onChange={(e)=>{setNumericField(e.target.value);resetResult();}}>{preparation.numeric_candidates.map((item)=><option key={item.field} value={item.field}>{item.field}{item.field===preparation.recommended_numeric?" · Recommended":""}</option>)}</select><small>{selectedNumeric?`Average ${formatNumber(selectedNumeric.mean,1)} across ${formatNumber(selectedNumeric.non_null,0)} usable rows`:"Choose a number field"}</small></label>}
             {mode==="summary"&&<label><span>How sure should we be?</span><select value={String(confidence)} onChange={(e)=>{setConfidence(Number(e.target.value));resetResult();}}><option value="0.90">90% · More flexible</option><option value="0.95">95% · Recommended</option><option value="0.99">99% · More conservative</option></select><small>95% is a common default for business analysis.</small></label>}
             {mode==="correlation"&&<label><span>Second measure</span><select value={numericFieldB} onChange={(e)=>{setNumericFieldB(e.target.value);resetResult();}}>{preparation.numeric_candidates.filter((item)=>item.field!==numericField).map((item)=><option key={item.field} value={item.field}>{item.field}</option>)}</select><small>We will check whether the two measures tend to move together.</small></label>}
@@ -269,12 +265,12 @@ export default function StatisticsPage() {
             <div className="statisticsRunCell"><span>READY</span><strong>Let Data Studio check the evidence</strong><small>The statistical method is chosen automatically. You get a simple answer first and the technical numbers only if you want them.</small><button className="statisticsPrimary" disabled={running} onClick={()=>void runAnalysis()}>{running?"Checking the evidence…":"Show me the evidence"}</button></div>
           </div></section>
           {error&&<div className="errorBox statisticsError">{error}</div>}
-          {result&&<><div className="statisticsReportActions"><button className="pdfReportButton" onClick={() => printToolReport("Statistics Report")}>Download PDF Report</button></div>{result.mode==="summary"&&<SummaryView result={result}/>} {result.mode==="correlation"&&<CorrelationView result={result}/>} {result.mode==="group_comparison"&&<GroupView result={result}/>} {result.mode==="categorical_association"&&<CategoryView result={result}/>}<StatisticsPdfReport result={result}/></>}
+          {result&&<><div id="statistics-results" className="statisticsReportActions"><button className="pdfReportButton" onClick={() => printToolReport("Statistics Report")}>Download PDF Report</button></div>{result.mode==="summary"&&<SummaryView result={result}/>} {result.mode==="correlation"&&<CorrelationView result={result}/>} {result.mode==="group_comparison"&&<GroupView result={result}/>} {result.mode==="categorical_association"&&<CategoryView result={result}/>}<StatisticsPdfReport result={result}/></>}
           {!result&&!error&&<section className="statisticsEmptyDashboard"><span className="statisticsEmptyIcon">▥</span><div><strong>Your statistics dashboard will appear here.</strong><p>Choose the fields above and select <b>Show me the evidence</b>. Data Studio will create KPI cards, a visual explanation and an everyday-language conclusion.</p></div></section>}
         </div>
       </section>}
       {error&&!preparation?.ready&&<div className="errorBox statisticsError">{error}</div>}
       <section className="supportLanding" id="support"><div><span className="panelKicker">INDEPENDENTLY BUILT</span><strong>Did Azhan Data Studio save you time?</strong><p>The studio stays free to use. If it helped you analyse, compare, forecast, simulate or validate a decision, you can support continued development with a one-time contribution.</p></div>{SUPPORT_URL ? <a className="supportPrimaryButton" href={SUPPORT_URL} target="_blank" rel="noreferrer">☕ Support development</a> : <span className="supportPending">Data Studio support link not configured</span>}</section>
     </section>
-  </main>;
+  </StudioToolShell>;
 }

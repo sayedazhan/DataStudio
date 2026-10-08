@@ -1,11 +1,25 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "./lib/seo";
 
-const LAST_UPDATED = new Date("2026-10-08T00:00:00+11:00");
+const LAST_UPDATED = new Date("2026-10-08T16:30:00+11:00");
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const routes = [
     { path: "/", priority: 1, changeFrequency: "weekly" as const },
+    { path: "/product", priority: 0.96, changeFrequency: "monthly" as const },
+    { path: "/solutions", priority: 0.95, changeFrequency: "monthly" as const },
+    { path: "/solutions/sales-analysis", priority: 0.94, changeFrequency: "monthly" as const },
+    { path: "/solutions/inventory-analysis", priority: 0.94, changeFrequency: "monthly" as const },
+    { path: "/solutions/financial-analysis", priority: 0.94, changeFrequency: "monthly" as const },
+    { path: "/solutions/operations-analysis", priority: 0.94, changeFrequency: "monthly" as const },
+    { path: "/reports", priority: 0.96, changeFrequency: "monthly" as const },
+    { path: "/white-label-reports", priority: 0.9, changeFrequency: "monthly" as const },
+    { path: "/pricing", priority: 0.82, changeFrequency: "monthly" as const },
+    { path: "/guides", priority: 0.94, changeFrequency: "weekly" as const },
+    { path: "/about", priority: 0.65, changeFrequency: "monthly" as const },
+    { path: "/contact", priority: 0.7, changeFrequency: "monthly" as const },
+    { path: "/support", priority: 0.72, changeFrequency: "monthly" as const },
+    { path: "/studio", priority: 0.98, changeFrequency: "weekly" as const },
     { path: "/features", priority: 0.95, changeFrequency: "weekly" as const },
     { path: "/features/excel-dashboard-generator", priority: 0.98, changeFrequency: "monthly" as const },
     { path: "/features/csv-excel-analysis", priority: 0.98, changeFrequency: "monthly" as const },

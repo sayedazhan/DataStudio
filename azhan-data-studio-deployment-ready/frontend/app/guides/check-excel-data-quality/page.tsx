@@ -15,7 +15,7 @@ export default function GuidePage() {
     title="How to Check Excel Data Quality Before Analysis"
     lead="A practical data-quality checklist for Excel files: check structure, missing values, duplicate rows, inconsistent categories and unusual numeric values before you rely on the results."
     pagePath="/guides/check-excel-data-quality"
-    toolHref="/"
+    toolHref="/studio"
     toolLabel="Check my Excel file"
     steps={[
       { title: "Check the table structure", description: "Confirm that the first row contains clear field names, each column represents one type of information and the dataset does not mix titles, notes or subtotals into the data area." },

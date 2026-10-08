@@ -1,5 +1,7 @@
 "use client";
 
+import StudioToolShell from "../components/studio-tool-shell";
+
 import { apiFetch } from "../lib/api";
 
 import { ChangeEvent, DragEvent, useRef, useState } from "react";
@@ -89,10 +91,7 @@ export default function CleanMyDataPage(){
   }
 
   const a=prep?.analysis;
-  return <main>
-    <header className="topbar"><a className="brand" href="/"><DataStudioMark/><span className="brandText"><strong>Azhan Data Studio</strong><small>Automated Data Intelligence</small></span></a><div className="topbarActions"><a className="creatorBadge" href={PORTFOLIO_URL} target="_blank" rel="noreferrer"><span className="creatorLabel">CREATED BY</span><span className="creatorName">Azhan Hassan</span><span className="creatorRole">Data &amp; AI Automation Specialist</span><span className="portfolioCta">View Portfolio ↗</span></a><a className="supportTopButton" href={SUPPORT_URL||"#support"} target={SUPPORT_URL?"_blank":undefined}>☕ Support</a></div></header>
-    <nav className="studioModeBar"><div className="studioModeInner"><a className="studioModeTab" href="/"><span className="studioModeIcon">▤</span><span><strong>Analyse Single File</strong><small>Discover insights, quality and visuals</small></span></a><a className="studioModeTab active" href="/clean"><span className="studioModeIcon">✦</span><span><strong>Clean My Data</strong><small>Fix common data-quality issues</small></span><em>NEW</em></a><a className="studioModeTab" href="/monthly"><span className="studioModeIcon">▦</span><span><strong>Monthly Intelligence</strong><small>Append files and track movement</small></span></a><a className="studioModeTab" href="/compare"><span className="studioModeIcon">↔</span><span><strong>Compare Datasets</strong><small>Find and explain what changed</small></span></a><a className="studioModeTab" href="/forecast"><span className="studioModeIcon">↗</span><span><strong>Forecast</strong><small>Project metrics forward</small></span></a><a className="studioModeTab" href="/scenario"><span className="studioModeIcon">◇</span><span><strong>Scenario</strong><small>Test assumptions</small></span></a><a className="studioModeTab" href="/statistics"><span className="studioModeIcon">Σ</span><span><strong>Statistics</strong><small>Validate relationships</small></span></a></div></nav>
-
+  return <StudioToolShell active="clean" title="Clean My Data" subtitle="Scan, review and clean common data-quality issues.">
     <section className="cleanHero"><div><span className="panelKicker">CLEAN MY DATA · NEW UTILITY</span><h1>Messy file in. Clean file out.</h1><p>Scan a CSV or Excel file for duplicates, blank rows, whitespace, inconsistent headers, mixed date formats and text-case variations — then clean the selected issues and download a refreshed file.</p><div className="cleanTrust"><span>No login</span><span>CSV + Excel</span><span>Up to 50 MB</span><span>Conservative cleaning rules</span></div></div></section>
 
     <section className="cleanShell">
@@ -105,7 +104,7 @@ export default function CleanMyDataPage(){
       {error&&<div className="errorBox">{error}</div>}
 
       {a&&<>
-        <section className="cleanScorePanel"><div className="cleanScore"><span>DATA QUALITY SCORE</span><strong>{a.quality_score}</strong><small>/100</small></div><div className="cleanScoreCopy"><h2>{a.issue_count===0?"Your dataset already looks clean.":`We found ${formatNumber(a.issue_count)} potential quality issues.`}</h2><p>Review what was detected, choose the fixes you want, then download a cleaned copy. The original upload is never overwritten.</p></div><div className="cleanMini"><span>Completeness</span><strong>{a.completeness_percent}%</strong></div></section>
+        <section className="cleanScorePanel" id="clean-quality"><div className="cleanScore"><span>DATA QUALITY SCORE</span><strong>{a.quality_score}</strong><small>/100</small></div><div className="cleanScoreCopy"><h2>{a.issue_count===0?"Your dataset already looks clean.":`We found ${formatNumber(a.issue_count)} potential quality issues.`}</h2><p>Review what was detected, choose the fixes you want, then download a cleaned copy. The original upload is never overwritten.</p></div><div className="cleanMini"><span>Completeness</span><strong>{a.completeness_percent}%</strong></div></section>
 
         <section className="cleanIssueGrid">
           <Issue label="Duplicate rows" value={a.duplicate_rows} detail="Exact repeated rows" tone={a.duplicate_rows?"warn":"good"}/>
@@ -118,14 +117,14 @@ export default function CleanMyDataPage(){
           <Issue label="Missing values" value={a.missing_values} detail="Existing null values are reported, not filled" tone={a.missing_values?"neutral":"good"}/>
         </section>
 
-        <section className="cleanControls"><div className="cleanControlsHead"><div><span className="panelKicker">CHOOSE CLEANING RULES</span><h2>Clean automatically, but stay in control.</h2><p>High-confidence fixes are enabled by default. Text-case standardisation is optional because business labels can be intentionally different.</p></div></div><div className="cleanOptionGrid">
+        <section className="cleanControls" id="clean-options"><div className="cleanControlsHead"><div><span className="panelKicker">CHOOSE CLEANING RULES</span><h2>Clean automatically, but stay in control.</h2><p>High-confidence fixes are enabled by default. Text-case standardisation is optional because business labels can be intentionally different.</p></div></div><div className="cleanOptionGrid">
           <Toggle label="Remove duplicate rows" detail="Keep the first instance of each exact row." checked={options.remove_duplicates} onChange={v=>setOptions({...options,remove_duplicates:v})}/>
           <Toggle label="Remove blank rows" detail="Delete rows where every value is blank." checked={options.remove_blank_rows} onChange={v=>setOptions({...options,remove_blank_rows:v})}/>
           <Toggle label="Trim whitespace" detail="Trim text and turn blank strings into nulls." checked={options.trim_whitespace} onChange={v=>setOptions({...options,trim_whitespace:v})}/>
           <Toggle label="Clean column names" detail="Convert headers to consistent snake_case." checked={options.clean_headers} onChange={v=>setOptions({...options,clean_headers:v})}/>
           <Toggle label="Standardise dates" detail="Convert highly date-like text columns to YYYY-MM-DD." checked={options.standardise_dates} onChange={v=>setOptions({...options,standardise_dates:v})}/>
           <Toggle label="Standardise text case" detail="Use the most common spelling for case-only variants." checked={options.standardise_text_case} onChange={v=>setOptions({...options,standardise_text_case:v})}/>
-        </div><div className="cleanDownloadBar"><label><span>Download format</span><select value={outputFormat} onChange={e=>setOutputFormat(e.target.value as "xlsx"|"csv")}><option value="xlsx">Excel (.xlsx)</option><option value="csv">CSV (.csv)</option></select></label><button className="cleanDownloadButton" disabled={cleaning} onClick={()=>void cleanAndDownload()}>{cleaning?"Cleaning file…":"✦ Clean & Download"}</button></div></section>
+        </div><div className="cleanDownloadBar" id="clean-download"><label><span>Download format</span><select value={outputFormat} onChange={e=>setOutputFormat(e.target.value as "xlsx"|"csv")}><option value="xlsx">Excel (.xlsx)</option><option value="csv">CSV (.csv)</option></select></label><button className="cleanDownloadButton" disabled={cleaning} onClick={()=>void cleanAndDownload()}>{cleaning?"Cleaning file…":"✦ Clean & Download"}</button></div></section>
 
         <section className="cleanDetailGrid">
           <div><h3>Column-name preview</h3>{a.header_changes.length?a.header_changes.slice(0,8).map(x=><p key={x.before}><code>{x.before}</code><span>→</span><code>{x.after}</code></p>):<div className="cleanEmpty">No header changes needed.</div>}</div>
@@ -137,7 +136,7 @@ export default function CleanMyDataPage(){
       </>}
     </section>
     <footer className="siteFooter"><strong>Azhan Data Studio</strong><span>Created by Azhan Hassan · Data &amp; AI Automation Specialist</span><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href={PORTFOLIO_URL} target="_blank" rel="noreferrer">View Portfolio ↗</a></footer>
-  </main>
+  </StudioToolShell>
 }
 
 function Issue({label,value,detail,tone}:{label:string;value:number;detail:string;tone:string}){return <article className={`cleanIssue ${tone}`}><span>{label}</span><strong>{formatNumber(value)}</strong><small>{detail}</small></article>}
