@@ -47,6 +47,22 @@ export default function GoogleAnalytics() {
         if (anchor.classList.contains("studioModeTab")) {
           sendEvent("tool_navigation", { tool: text || "Studio tool", destination: href || "/" });
         }
+
+        if (href === "/studio" || href.startsWith("/studio?")) {
+          sendEvent("launch_studio_click", { source_path: window.location.pathname, link_text: text || "Launch Studio" });
+        }
+
+        if (href.startsWith("/pricing")) {
+          sendEvent("pricing_interest_click", { source_path: window.location.pathname, link_text: text || "Pricing" });
+        }
+
+        if (href.startsWith("/contact") || href.startsWith("/white-label-reports")) {
+          sendEvent("commercial_intent_click", { source_path: window.location.pathname, destination: href, link_text: text || "Commercial enquiry" });
+        }
+
+        if (href.includes("/reports#sample-report")) {
+          sendEvent("sample_report_click", { source_path: window.location.pathname });
+        }
       }
 
       if (button) {
@@ -57,15 +73,15 @@ export default function GoogleAnalytics() {
           return;
         }
 
-        if (window.location.pathname === "/" && /^(Analyse my data|Analyse .+|Analyse sheet|Re-analyse)/i.test(text)) {
+        if (window.location.pathname === "/studio" && /^(Analyse my data|Analyse .+|Analyse sheet|Re-analyse)/i.test(text)) {
           sendEvent("analysis_start", { action_label: text });
         }
 
-        if (window.location.pathname === "/" && /Data Quality|Review data quality/i.test(text)) {
+        if (window.location.pathname === "/studio" && /Data Quality|Review data quality/i.test(text)) {
           sendEvent("data_quality_open", { source: "analyse_workspace", action_label: text });
         }
 
-        if (window.location.pathname === "/" && button.closest(".workspaceNav") && /^Dashboard$/i.test(text)) {
+        if (window.location.pathname === "/studio" && button.closest(".workspaceNav") && /^Dashboard$/i.test(text)) {
           sendEvent("dashboard_open", { source: "analyse_workspace" });
         }
 
@@ -93,8 +109,24 @@ export default function GoogleAnalytics() {
       }
     };
 
+    const onSubmit = (event: Event) => {
+      const form = event.target instanceof HTMLFormElement ? event.target : null;
+      if (!form) return;
+      const formName = form.getAttribute("name") || "";
+      if (formName === "pro-waitlist") {
+        sendEvent("pro_waitlist_submit", { source: window.location.pathname });
+      }
+      if (formName === "data-studio-contact") {
+        sendEvent("contact_form_submit", { source: window.location.pathname });
+      }
+    };
+
     document.addEventListener("click", onClick, true);
-    return () => document.removeEventListener("click", onClick, true);
+    document.addEventListener("submit", onSubmit, true);
+    return () => {
+      document.removeEventListener("click", onClick, true);
+      document.removeEventListener("submit", onSubmit, true);
+    };
   }, []);
 
   if (!GA_MEASUREMENT_ID) return null;

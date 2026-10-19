@@ -4673,3 +4673,63 @@ body:has(.marketingSite){background:#f7f9fd!important}
 .marketingDropdown small{color:#596b86!important;font-weight:600}
 .marketingDropdown a:hover strong{color:#0b56d8!important}
 .marketingDropdown a:focus-visible{outline:2px solid #2a72ff;outline-offset:2px;background:#f2f6ff}
+
+/* v5.3 Positioning & Conversion */
+.marketingValueSection{background:linear-gradient(180deg,#fff,#f5f8fe);border-top:1px solid #e4ebf6;border-bottom:1px solid #e1e9f5}
+.marketingValueInner{max-width:1280px;margin:0 auto;padding:52px 28px}
+.marketingValueGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.marketingValueGrid article{background:#fff;border:1px solid #dbe5f2;border-radius:16px;padding:20px;box-shadow:0 8px 24px rgba(24,57,105,.05)}
+.marketingValueGrid article>span{display:inline-flex;width:30px;height:30px;align-items:center;justify-content:center;border-radius:9px;background:#edf4ff;color:#2f68d5;font-size:10px;font-weight:900;margin-bottom:14px}
+.marketingValueGrid strong{display:block;font-size:14px;color:#11284f;margin-bottom:7px}
+.marketingValueGrid p{font-size:11px;line-height:1.6;color:#667690;margin:0}
+.marketingAudienceRow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:18px;padding:14px 16px;border-radius:13px;background:#0d2448;color:#dce8fa}
+.marketingAudienceRow>span{font-size:10px;color:#94acd0;font-weight:800;margin-right:2px}
+.marketingAudienceRow>b{font-size:10px;padding:7px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12)}
+.marketingTrustBand{max-width:1280px;margin:26px auto 28px;padding:32px 34px;border-radius:20px;background:linear-gradient(135deg,#eaf5ff,#f5f2ff);border:1px solid #d7e5f6;display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}
+.marketingTrustBand>div:first-child>span{font-size:9px;letter-spacing:.12em;font-weight:900;color:#2f68d5}
+.marketingTrustBand h2{font-size:27px;color:#10264c;margin:7px 0}
+.marketingTrustBand p{font-size:11.5px;line-height:1.65;color:#60718c;margin:0}
+.marketingTrustPoints{display:grid;gap:9px}
+.marketingTrustPoints span{font-size:11px;color:#2b466f;background:rgba(255,255,255,.72);border:1px solid #d8e5f4;padding:10px 12px;border-radius:10px}
+.marketingTrustPoints a{font-size:11px;font-weight:800;color:#2868db;margin-top:3px}
+.marketingCommercialSection{max-width:1280px;margin:0 auto;padding:22px 28px 54px}
+.marketingCommercialHead{max-width:800px;margin-bottom:22px}
+.marketingCommercialHead>span{font-size:9px;letter-spacing:.12em;font-weight:900;color:#3168d3}
+.marketingCommercialHead h2{font-size:30px;color:#0d2348;margin:8px 0}
+.marketingCommercialHead p{font-size:12px;color:#687791;line-height:1.65}
+.marketingCommercialGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.marketingCommercialGrid article{display:flex;flex-direction:column;min-height:210px;border:1px solid #dbe5f2;border-radius:17px;padding:22px;background:#fff;box-shadow:0 7px 22px rgba(27,63,114,.05)}
+.marketingCommercialGrid article.active{border-color:#80a9ff;box-shadow:0 14px 32px rgba(40,94,205,.11)}
+.marketingCommercialGrid small{font-size:8px;letter-spacing:.12em;font-weight:900;color:#4772c6}
+.marketingCommercialGrid strong{font-size:19px;margin-top:10px;color:#11284f}
+.marketingCommercialGrid b{font-size:24px;color:#10264c;margin-top:4px}
+.marketingCommercialGrid p{font-size:11px;line-height:1.55;color:#687791;flex:1}
+.marketingCommercialGrid a{font-size:11px;font-weight:900;color:#2468e6}
+.marketingWaitlistSection{max-width:1280px;margin:14px auto 58px;padding:34px;border-radius:22px;background:linear-gradient(135deg,#0c2347,#152d57 60%,#24175e);color:#fff;display:grid;grid-template-columns:.9fr 1.1fr;gap:38px;align-items:start}
+.marketingWaitlistIntro>span{font-size:9px;letter-spacing:.12em;font-weight:900;color:#85baff}
+.marketingWaitlistIntro h2{font-size:29px;margin:8px 0}
+.marketingWaitlistIntro p{font-size:12px;line-height:1.65;color:#c6d2e4}
+.marketingWaitlistPoints{display:flex;gap:8px;flex-wrap:wrap;margin-top:17px}
+.marketingWaitlistPoints span{font-size:9px;padding:7px 9px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);border-radius:999px}
+.marketingWaitlistForm,.marketingContactForm{background:#fff;border-radius:16px;padding:20px;color:#10264c;box-shadow:0 18px 40px rgba(0,0,0,.12)}
+.marketingFormGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.marketingWaitlistForm label,.marketingContactForm label{display:grid;gap:6px;font-size:10px;font-weight:800;color:#334d74}
+.marketingWaitlistForm label span,.marketingContactForm label span{display:flex;justify-content:space-between;gap:8px}
+.marketingWaitlistForm label em,.marketingContactForm label em{font-style:normal;font-weight:500;color:#8b9ab0}
+.marketingWaitlistForm input,.marketingWaitlistForm select,.marketingContactForm input,.marketingContactForm select,.marketingContactForm textarea{width:100%;border:1px solid #d6e1ef;border-radius:10px;background:#f9fbfe;padding:11px 12px;font:inherit;color:#162a4a;outline:none;box-sizing:border-box}
+.marketingWaitlistForm input:focus,.marketingWaitlistForm select:focus,.marketingContactForm input:focus,.marketingContactForm select:focus,.marketingContactForm textarea:focus{border-color:#6e9df4;box-shadow:0 0 0 3px rgba(70,122,230,.1)}
+.marketingConsentLine{display:flex!important;grid-template-columns:auto 1fr!important;align-items:flex-start!important;margin:14px 0!important;font-weight:500!important;line-height:1.45!important}
+.marketingConsentLine input{width:auto!important;margin-top:2px}
+.marketingWaitlistForm .marketingPrimaryButton,.marketingContactForm .marketingPrimaryButton{border:0;cursor:pointer;margin-top:2px}
+.marketingFormNote{display:block;color:#7c8da5;font-size:8.5px;line-height:1.5;margin-top:9px}
+.marketingContactPanelForm{grid-template-columns:.8fr 1.2fr}
+.marketingContactForm{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.marketingContactForm label.full{grid-column:1/3}
+.marketingContactForm button{justify-self:start}
+.marketingDirectLinks{display:flex;gap:12px;margin-top:16px}
+.marketingDirectLinks a{font-size:10px;font-weight:800;color:#8fc0ff}
+.marketingThanksPage{padding-top:110px;padding-bottom:120px}
+
+@media (max-width:900px){.marketingValueGrid{grid-template-columns:1fr 1fr}.marketingTrustBand,.marketingWaitlistSection,.marketingContactPanelForm{grid-template-columns:1fr}.marketingCommercialGrid{grid-template-columns:1fr}.marketingFormGrid{grid-template-columns:1fr}}
+@media (max-width:760px){.marketingValueInner,.marketingCommercialSection{padding-left:18px;padding-right:18px}.marketingValueGrid{grid-template-columns:1fr}.marketingTrustBand,.marketingWaitlistSection{margin-left:18px;margin-right:18px;padding:26px 20px}.marketingContactForm{grid-template-columns:1fr}.marketingContactForm label.full{grid-column:auto}}
+.marketingBotField{position:absolute!important;left:-10000px!important;width:1px!important;height:1px!important;overflow:hidden!important}

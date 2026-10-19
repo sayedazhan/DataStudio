@@ -4,12 +4,12 @@ import { CREATOR_NAME, CREATOR_URL, SITE_NAME, SITE_URL } from "./lib/seo";
 import GoogleAnalytics from "./components/google-analytics";
 
 const description =
-  "Turn Excel and CSV files into decision-ready intelligence with automatic analysis, data quality checks, dashboards, comparisons, forecasting, statistics and professional reports.";
+  "Upload Excel or CSV data and automatically get data-quality checks, KPIs, dashboards, insights and professional reports without building everything manually.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Azhan Data Studio | Excel & CSV Analytics, Dashboards and Reports",
+    default: "Azhan Data Studio | Excel Dashboard, Insights & Reports",
     template: "%s | Azhan Data Studio",
   },
   description,
@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     locale: "en_AU",
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: "Azhan Data Studio | Excel & CSV Analytics, Dashboards and Reports",
+    title: "Azhan Data Studio | Excel Dashboard, Insights & Reports",
     description,
     images: [
       {
@@ -63,7 +63,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Azhan Data Studio | Excel & CSV Analytics, Dashboards and Reports",
+    title: "Azhan Data Studio | Excel Dashboard, Insights & Reports",
     description,
     images: ["/opengraph-image"],
   },
@@ -94,7 +94,7 @@ const structuredData = {
       operatingSystem: "Web",
       browserRequirements: "Requires a modern web browser",
       description,
-      softwareVersion: "5.2.0",
+      softwareVersion: "5.3.0",
       isAccessibleForFree: true,
       offers: {
         "@type": "Offer",
