@@ -3,7 +3,7 @@ import { SeoGuidePage } from "../../components/seo-guide-page";
 import { buildPageMetadata } from "../../lib/seo";
 
 export const metadata: Metadata = buildPageMetadata({
-  title: "How to Check Excel Data Quality Before Analysis",
+  title: "Excel Data Quality Checks: 6-Step Guide | Azhan Data Studio",
   description: "Learn how to check Excel data quality for missing values, duplicates, inconsistent fields and outliers before analysis or reporting.",
   path: "/guides/check-excel-data-quality",
   keywords: ["how to check Excel data quality", "Excel data quality checks", "check Excel for duplicates", "find missing values in Excel", "Excel data validation before analysis"],
@@ -15,8 +15,8 @@ export default function GuidePage() {
     title="How to Check Excel Data Quality Before Analysis"
     lead="A practical data-quality checklist for Excel files: check structure, missing values, duplicate rows, inconsistent categories and unusual numeric values before you rely on the results."
     pagePath="/guides/check-excel-data-quality"
-    toolHref="/studio"
-    toolLabel="Check my Excel file"
+    toolHref="/features/data-quality-checker"
+    toolLabel="Open Excel Data Quality Checker"
     steps={[
       { title: "Check the table structure", description: "Confirm that the first row contains clear field names, each column represents one type of information and the dataset does not mix titles, notes or subtotals into the data area." },
       { title: "Measure missing values", description: "Identify fields with blanks or null values and decide whether the gaps are acceptable, need correction or should be excluded from a specific calculation." },

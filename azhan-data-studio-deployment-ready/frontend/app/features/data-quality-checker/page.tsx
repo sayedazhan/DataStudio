@@ -3,7 +3,7 @@ import { SeoFeaturePage } from "../../components/seo-feature-page";
 import { buildPageMetadata } from "../../lib/seo";
 
 export const metadata: Metadata = buildPageMetadata({
-  title: "Excel Data Quality Checker Online",
+  title: "Excel Data Quality Checker Online | CSV & Excel",
   description: "Check Excel and CSV files online for missing values, duplicate rows, inconsistent data and outliers before analysis. Free, no login required.",
   path: "/features/data-quality-checker",
   keywords: ["Excel data quality checks", "Excel data quality checker", "CSV data quality checker", "check Excel data quality online", "missing values checker", "duplicate row checker", "data quality tool"],

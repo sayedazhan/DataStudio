@@ -3,7 +3,7 @@ import { SeoFeaturePage } from "../../components/seo-feature-page";
 import { buildPageMetadata } from "../../lib/seo";
 
 export const metadata: Metadata = buildPageMetadata({
-  title: "Compare Excel & CSV Files Online",
+  title: "Compare Excel Files Online | Find Data Changes",
   description: "Compare two Excel or CSV datasets online to identify added and removed fields, changed records, metric movement and the categories driving the difference.",
   path: "/features/compare-excel-files",
   keywords: ["compare Excel files", "compare CSV files", "compare datasets online", "Excel difference checker", "dataset comparison tool"],
@@ -12,7 +12,7 @@ export const metadata: Metadata = buildPageMetadata({
 export default function CompareExcelFilesPage() {
   return <SeoFeaturePage
     eyebrow="COMPARE EXCEL & CSV FILES"
-    title="Compare two datasets and understand what actually changed."
+    title="Compare Excel files online and see what changed."
     lead="Use Azhan Data Studio to compare previous and current CSV or Excel datasets, review structural changes, quantify movement and identify the records or categories behind the difference."
     toolHref="/compare"
     toolLabel="Compare datasets"
